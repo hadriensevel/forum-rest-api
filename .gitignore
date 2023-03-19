@@ -1,0 +1,8 @@
+# Config file
+/inc/config.php
+
+# htaccess file
+/.htaccess
+
+# Webstorm files
+/.idea

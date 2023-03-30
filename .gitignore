@@ -6,3 +6,6 @@
 
 # Webstorm files
 /.idea
+
+# API tests
+requests.http

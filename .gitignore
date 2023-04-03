@@ -9,3 +9,6 @@
 
 # API tests
 requests.http
+
+# SSL keys
+/ssl/

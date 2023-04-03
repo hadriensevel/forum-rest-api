@@ -13,3 +13,4 @@ require_once PROJECT_ROOT_PATH . '/middlewares/cors.php';
 require_once PROJECT_ROOT_PATH . '/Controller/Api/BaseController.php';
 require_once PROJECT_ROOT_PATH . '/Controller/Api/QuestionController.php';
 require_once PROJECT_ROOT_PATH . '/Model/QuestionModel.php';
+require_once PROJECT_ROOT_PATH . '/Mailer/Mailer.php';

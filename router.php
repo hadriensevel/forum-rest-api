@@ -26,7 +26,7 @@ function route($route, $path_to_include){
             $path_to_include.='.php';
         }
     }
-    if($route == "/404"){
+    if($route == "/400"){
         include_once __DIR__."/$path_to_include";
         exit();
     }

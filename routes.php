@@ -36,12 +36,5 @@ delete(ROOT_URI . '/question/delete/$id', function($id) {
     $objFeedController->delete($id);
 });
 
-// 404 route
-any('/404', '404.php');
-
-// 400 route
-get('/400', function() {
-    header('HTTP/1.1 400 Bad Request');
-    header('Content-Type: application/json; charset=utf-8');
-    return json_encode(array('error' => 'Invalid request'));
-});
+// Bad request route
+any('/400', '400.php');

@@ -2,11 +2,11 @@
 /*
  * Copyright (c) 2023. Hadrien Sevel
  * Project: forum-rest-api
- * File: 404.php
+ * File: 400.php
  */
 
-header('HTTP/1.0 404 Not Found');
+header('HTTP/1.1 400 Bad Request');
 header('Content-Type: application/json; charset=utf-8');
 echo json_encode(array(
-    'error' => '404 Not Found'
+    'error' => 'Bad request'
 ));

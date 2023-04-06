@@ -29,9 +29,11 @@ CREATE TABLE Questions
     Question          TEXT     NOT NULL,
     IDUser            VARCHAR(50),
     IDTopic           INT,
+    IDNotesDiv        VARCHAR(50)       DEFAULT NULL,
     Title             VARCHAR(300),
     Visible           BOOLEAN           DEFAULT false,
     HasAcceptedAnswer BOOLEAN           DEFAULT false,
+    Anonymous         BOOLEAN           DEFAULT false,
     FOREIGN KEY (IDUser) REFERENCES Users (Sciper),
     FOREIGN KEY (IDTopic) REFERENCES Topics (IDTopic)
 );
@@ -45,6 +47,7 @@ CREATE TABLE Answers
     IDParentQuestion INT      NOT NULL,
     IDParentAnswer   INT               DEFAULT NULL,
     AcceptedAnswer   BOOLEAN           DEFAULT false,
+    Anonymous        BOOLEAN           DEFAULT false,
     FOREIGN KEY (IDUser) REFERENCES Users (Sciper),
     FOREIGN KEY (IDParentQuestion) REFERENCES Questions (ID) ON DELETE CASCADE,
     FOREIGN KEY (IDParentAnswer) REFERENCES Answers (ID) ON DELETE CASCADE

@@ -2,10 +2,10 @@
 /*
  * Copyright (c) 2023. Hadrien Sevel
  * Project: forum-rest-api
- * File: Database.php
+ * File: DatabaseModel.php
  */
 
-class Database
+class DatabaseModel
 {
     protected ?mysqli $connection = null;
 

@@ -32,7 +32,7 @@ class Mailer
         $this->mailer->SMTPAuth = true;                             //Enable SMTP authentication
         $this->mailer->Username = MAILER_USERNAME;                  //SMTP username
         $this->mailer->Password = MAILER_PASSWORD;                  //SMTP password
-        $this->mailer->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;    //Enable implicit TLS encryption
+        $this->mailer->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;    //Enable implicit TLS encryption
         $this->mailer->Port = MAILER_PORT;                          //TCP port to connect to; use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
 
         // Sender

@@ -12,3 +12,11 @@ requests.http
 
 # SSL keys
 /ssl/
+
+# Composer
+/bin/
+/vendor/
+/composer.lock
+
+# Test file
+/test.php

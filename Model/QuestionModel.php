@@ -5,8 +5,6 @@
  * File: QuestionModel.php
  */
 
-require_once PROJECT_ROOT_PATH . 'Model/DatabaseModel.php';
-
 class QuestionModel extends DatabaseModel
 {
 
@@ -63,46 +61,6 @@ class QuestionModel extends DatabaseModel
     {
         $query = "DELETE FROM Questions WHERE ID = ?";
         $params = array($id);
-        return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
-    }
-
-    /**
-     * MySQL query to get the ID of a topic
-     * @param string $topic
-     * @param string $topicNumber
-     * @return false|mysqli_result
-     * @throws Exception
-     */
-    public function getTopic(string $topic, string $topicNumber): false|mysqli_result
-    {
-        $query = "SELECT * FROM Topics WHERE Category = ? AND Number = ?";
-        $params = array($topic, $topicNumber);
-        return $this->createAndRunPreparedStatement($query, $params);
-    }
-
-    /**
-     * @param int $sciper
-     * @return false|mysqli_result
-     * @throws Exception
-     */
-    public function checkUser(int $sciper): false|mysqli_result
-    {
-        $query = "SELECT * FROM Users WHERE Sciper = ?";
-        $params = array($sciper);
-        return $this->createAndRunPreparedStatement($query, $params);
-    }
-
-    /**
-     * @param int $sciper
-     * @param string $name
-     * @param string $email
-     * @return int
-     * @throws Exception
-     */
-    public function addUser(int $sciper, string $name, string $email): int
-    {
-        $query = "INSERT INTO Users (Sciper, Name, Email) VALUES (?, ?, ?)";
-        $params = array($sciper, $name, $email);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }
 }

@@ -75,12 +75,12 @@ class QuestionController extends BaseController
 
                 // Check if the required fields are present
                 if (isset($postData['topic']) && isset($postData['topicNumber']) && isset($postData['question']) && isset($postData['sciper'])) {
-                    $questionModel = new QuestionModel();
-
-                    $topicID = $this->getTopic($postData['topic'], $postData['topicNumber']);
+                    $topicController = new TopicController();
+                    $topicID = $topicController->getTopic($postData['topic'], $postData['topicNumber']);
 
                     // Check if the topic exists
                     if ($topicID) {
+                        $questionModel = new QuestionModel();
 
                         // Save the new question to the database
                         $newQuestionId = $questionModel->addQuestion($postData['question'],
@@ -147,60 +147,6 @@ class QuestionController extends BaseController
                 $strErrorHeader,
                 array('error' => $strErrorDesc)
             );
-        }
-    }
-
-
-    /**
-     * Get the ID of a topic
-     * @param string $topic type of topic ('section', 'exercice', 'quiz')
-     * @param string $topicNumber number of the topic
-     * @return int|null
-     * @throws Exception
-     */
-    private function getTopic(string $topic, string $topicNumber): int|null
-    {
-        try {
-            $questionModel = new QuestionModel();
-            $response = $questionModel->getTopic($topic, $topicNumber);
-            return $response->fetch_assoc()['IDTopic'] ?? null;
-        } catch (Exception $e) {
-            throw new Exception($e->getMessage());
-        }
-    }
-
-    /**
-     * Check if the user is in the database
-     * @param int $sciper
-     * @return bool
-     * @throws Exception
-     */
-    private function checkUser(int $sciper): bool
-    {
-        try {
-            $questionModel = new QuestionModel();
-            $response = $questionModel->checkUser($sciper);
-            return $response->fetch_assoc()['IDUser'] ?? false;
-        } catch (Exception $e) {
-            throw new Exception($e->getMessage());
-        }
-    }
-
-    /**
-     * Add a user to the database
-     * @param int $sciper
-     * @param string $name
-     * @param string $email
-     * @return void
-     * @throws Exception
-     */
-    private function addUser(int $sciper, string $name, string $email): void
-    {
-        try {
-            $questionModel = new QuestionModel();
-            $questionModel->addUser($sciper, $name, $email);
-        } catch (Exception $e) {
-            throw new Exception($e->getMessage());
         }
     }
 }

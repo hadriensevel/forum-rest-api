@@ -84,7 +84,7 @@ class Mailer
      */
     private function saveEmail(): void
     {
-        $path = "{ewa.epfl.ch:993/imap/ssl}Sent Items";
+        $path = MAILER_IMAP_SENT_FOLDER;
         $imapStream = imap_open($path, $this->mailer->Username, $this->mailer->Password, 0, 1, array('DISABLE_AUTHENTICATOR' => 'GSSAPI'));
         imap_append($imapStream, $path, $this->mailer->getSentMIMEMessage());
         $check = imap_check($imapStream);

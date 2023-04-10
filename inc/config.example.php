@@ -19,3 +19,4 @@ const MAILER_USERNAME = '';
 const MAILER_PASSWORD = '';
 const MAILER_FROM = '';
 const MAILER_FROM_NAME = '';
+const MAILER_IMAP_SENT_FOLDER = '';

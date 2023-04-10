@@ -46,6 +46,14 @@ class QuestionController extends BaseController
 
     /**
      * Create a new question
+     * The request body must be a JSON object with the following fields:
+     * - topic: the topic of the question (string: 'section', 'exercise', 'quiz' or empty string for general questions)
+     * - topicNumber: the topic number (string, e.g. '1-2')
+     * - question: the question (string)
+     * - sciper: the sciper number of the user who asked (int)
+     * - title: the title of the question (string or empty string)
+     * - divID: the ID of the div where the question is located (int or null)
+     * - anonymous: true if the question is anonymous, false otherwise (bool)
      * @return void
      */
     public function create(): void
@@ -65,14 +73,29 @@ class QuestionController extends BaseController
                 // Decode the JSON data into a PHP object or array
                 $postData = json_decode($rawData, true);
 
-                // TODO: Change the data here
-                if (isset($postData['title']) && isset($postData['content'])) {
+                // Check if the required fields are present
+                if (isset($postData['topic']) && isset($postData['topicNumber']) && isset($postData['question']) && isset($postData['sciper'])) {
                     $questionModel = new QuestionModel();
 
-                    // Save the new question to the database
-                    $newQuestionId = $questionModel->addQuestion($postData['title'], $postData['content']);
+                    $topicID = $this->getTopic($postData['topic'], $postData['topicNumber']);
 
-                    $responseData = array('id' => $newQuestionId);
+                    // Check if the topic exists
+                    if ($topicID) {
+
+                        // Save the new question to the database
+                        $newQuestionId = $questionModel->addQuestion($postData['question'],
+                            $postData['sciper'], $topicID, $postData['title'], $postData['divID'], $postData['anonymous']);
+
+                        // Check if the question has been saved
+                        if (!$newQuestionId) {
+                            throw new Exception('Error while saving the question');
+                        }
+
+                    } else {
+                        $strErrorDesc = 'Invalid topic';
+                        $strErrorHeader = 'HTTP/1.1 400 Bad Request';
+                    }
+
                 } else {
                     $strErrorDesc = 'Missing required fields';
                     $strErrorHeader = 'HTTP/1.1 400 Bad Request';
@@ -85,8 +108,7 @@ class QuestionController extends BaseController
 
         if (!$strErrorDesc) {
             $this->sendOutput(
-                'HTTP/1.1 201 Created',
-                $responseData
+                'HTTP/1.1 200 OK',
             );
         } else {
             $this->sendOutput(

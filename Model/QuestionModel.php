@@ -39,15 +39,17 @@ class QuestionModel extends DatabaseModel
      * MySQL query to add a question
      * @param string $question
      * @param int $user
-     * @param int $IDTopic
+     * @param int $topicID
      * @param string $title
+     * @param int $divID
+     * @param bool $anonymous
      * @return int
      * @throws Exception
      */
-    public function addQuestion(string $question, int $user, int $IDTopic, string $title): int
+    public function addQuestion(string $question, int $user, int $topicID, string $title, int $divID, bool $anonymous): int
     {
-        $query = "INSERT INTO Questions (Question, IDUser, IDTopic, Title) VALUES (?, ?, ?, NULLIF(?, ''))";
-        $params = array($question, $user, $IDTopic, $title);
+        $query = "INSERT INTO Questions (Question, IDUser, IDTopic, Title, IDNotesDiv, Anonymous) VALUES (?, ?, ?, ?, ?, ?)";
+        $params = array($question, $user, $topicID, $title, $anonymous);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }
 

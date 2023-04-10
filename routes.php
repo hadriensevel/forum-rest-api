@@ -5,8 +5,7 @@
  * File: routes.php
  */
 
-require_once __DIR__ . '/router.php';
-require __DIR__ . '/inc/bootstrap.php';
+require_once __DIR__ . '/vendor/autoload.php';
 
 // Available actions
 // - list : get the list of the questions (parameter: limit (optional))

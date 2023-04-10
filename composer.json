@@ -1,5 +1,18 @@
 {
     "require": {
         "phpmailer/phpmailer": "^6.8"
+    },
+    "autoload": {
+        "classmap": [
+            "Controller",
+            "Model",
+            "Mailer"
+        ],
+        "files": [
+            "router.php",
+            "inc/config.php",
+            "middlewares/authentication.php",
+            "middlewares/cors.php"
+        ]
     }
 }

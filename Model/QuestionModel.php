@@ -16,18 +16,18 @@ class QuestionModel extends DatabaseModel
      */
     public function getQuestions(int $limit): false|mysqli_result
     {
-        $query = "SELECT QuestionDate, Users.Name, Topics.Category, Topics.Number, Topics.Name AS TopicName, Questions.ID, IDNotesDiv, Question, Title, l.Likes, HasAcceptedAnswer, Anonymous
-        FROM Questions
-        LEFT JOIN Users
-        ON Questions.IDUser = Users.Sciper 
-        LEFT JOIN Topics
-        ON Questions.IDTopic = Topics.IDTopic
-        LEFT JOIN (SELECT IDQuestion, COUNT(*) AS Likes FROM LikesQuestions GROUP BY IDQuestion) l
-        ON Questions.ID = l.IDQuestion
-        LEFT JOIN Bookmarks
-        ON Questions.ID = Bookmarks.IDQuestion
-        WHERE Visible = true
-        GROUP BY Questions.ID
+        $query = "SELECT question_date, users.name, topics.category, topics.number, topics.name AS topic_name, questions.id, id_notes_div, question, title, l.likes, has_accepted_answer, anonymous
+        FROM questions
+        LEFT JOIN users
+        ON questions.id_user = users.sciper 
+        LEFT JOIN topics
+        ON questions.id_topic = topics.id_topic
+        LEFT JOIN (SELECT id_question, COUNT(*) AS likes FROM likes_questions GROUP BY id_question) l
+        ON questions.id = l.id_question
+        LEFT JOIN bookmarks
+        ON questions.id = bookmarks.id_question
+        WHERE visible = true
+        GROUP BY questions.id
         LIMIT ?";
         $params = array($limit);
         return $this->createAndRunPreparedStatement($query, $params);
@@ -46,8 +46,8 @@ class QuestionModel extends DatabaseModel
      */
     public function addQuestion(string $question, int $user, int $topicID, string $title, int $divID, bool $anonymous): int
     {
-        $query = "INSERT INTO Questions (Question, IDUser, IDTopic, Title, IDNotesDiv, Anonymous) VALUES (?, ?, ?, ?, ?, ?)";
-        $params = array($question, $user, $topicID, $title, $anonymous);
+        $query = "INSERT INTO questions (question, id_user, id_topic, title, id_notes_div, anonymous) VALUES (?, ?, ?, ?, ?, ?)";
+        $params = array($question, $user, $topicID, $title, $divID, $anonymous);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }
 
@@ -59,7 +59,7 @@ class QuestionModel extends DatabaseModel
      */
     public function deleteQuestion(int $id): int
     {
-        $query = "DELETE FROM Questions WHERE ID = ?";
+        $query = "DELETE FROM questions WHERE id = ?";
         $params = array($id);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }

@@ -16,7 +16,7 @@ class TopicModel extends DatabaseModel
      */
     public function getTopic(string $topic, string $topicNumber): false|mysqli_result
     {
-        $query = "SELECT * FROM Topics WHERE Category = ? AND Number = ?";
+        $query = "SELECT * FROM topics WHERE category = ? AND number = ?";
         $params = array($topic, $topicNumber);
         return $this->createAndRunPreparedStatement($query, $params);
     }

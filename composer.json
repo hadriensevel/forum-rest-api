@@ -14,7 +14,8 @@
       "router.php",
       "inc/config.php",
       "middlewares/authentication.php",
-      "middlewares/cors.php"
+      "middlewares/cors.php",
+      "utils/error.php"
     ]
   }
 }

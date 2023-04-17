@@ -1,13 +1,16 @@
 <?php
 
+// API configuration
+const API_NAME = '';
+const API_ROOT_URI = '';
+const API_DEBUG = false;
+const API_ADMIN_EMAILS = array('');
+
 // Database configuration
 const DB_HOST = '';
 const DB_USER = '';
 const DB_PASS = '';
 const DB_NAME = '';
-
-// API configuration
-const ROOT_URI = '';
 
 // CORS configuration
 const ALLOWED_ORIGINS = array();

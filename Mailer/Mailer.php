@@ -10,6 +10,7 @@ use PHPMailer\PHPMailer\Exception;
 
 class Mailer
 {
+    private const SUBJECT_NEW_ANSWER_NOTIFICATION = 'Nouvelle réponse à votre question';
     private PHPMailer $mailer;
 
     /**
@@ -39,6 +40,35 @@ class Mailer
 
         $this->mailer->isHTML(true);
         $this->mailer->CharSet = 'UTF-8';
+    }
+
+    /**
+     * Send a new answer notification
+     * @param string $name
+     * @param string $email
+     * @param string $topic
+     * @return void
+     * @throws Exception
+     */
+    public function sendNewAnswerNotification(string $name, string $email, string $topic): void
+    {
+        $body = file_get_contents('templates/new_answer_notification.html');
+        $body = str_replace('{{name}}', $name, $body);
+        $body = str_replace('{{topic}}', $topic, $body);
+        $this->sendEmail([$email], self::SUBJECT_NEW_ANSWER_NOTIFICATION, $body);
+    }
+
+    /**
+     * Email admins when an error occurs
+     * @param string $errorId
+     * @param string $error
+     * @return void
+     * @throws Exception
+     */
+    public function sendErrorEmail(string $errorId, string $error): void
+    {
+        $body = '<h1>' . $errorId . '</h1><pre style="white-space: pre-wrap">' . $error . '</pre>';
+        $this->sendEmail(API_ADMIN_EMAILS, '[' . API_NAME . '] ERROR: ' . $errorId, $body);
     }
 
     /**

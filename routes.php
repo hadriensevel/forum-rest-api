@@ -9,14 +9,14 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 // Available actions
 // - list : get the list of the questions (parameter: limit (optional))
-get(ROOT_URI . '/question/$action', function($action) {
+get(API_ROOT_URI . '/question/$action', function ($action) {
     setCorsHeaders();
     $objFeedController = new QuestionController();
     $objFeedController->{$action . 'Action'}();
 });
 
 // Create a new question
-post(ROOT_URI . '/question/new', function() {
+post(API_ROOT_URI . '/question/new', function () {
     setCorsHeaders();
     // checkAuthentication();
     $objFeedController = new QuestionController();
@@ -24,7 +24,7 @@ post(ROOT_URI . '/question/new', function() {
 });
 
 // Delete a question (parameter: question id (required))
-delete(ROOT_URI . '/question/delete/$id', function($id) {
+delete(API_ROOT_URI . '/question/delete/$id', function ($id) {
     setCorsHeaders();
     // checkAuthentication();
     if (!$id) {

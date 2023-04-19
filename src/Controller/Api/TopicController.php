@@ -5,6 +5,11 @@
  * File: TopicController.php
  */
 
+namespace Controller\Api;
+
+use Model\TopicModel;
+use Exception;
+
 class TopicController extends BaseController
 {
     /**

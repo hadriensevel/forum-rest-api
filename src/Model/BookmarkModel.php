@@ -5,6 +5,10 @@
  * File: BookmarkModel.php
  */
 
+namespace Model;
+use Exception;
+use mysqli_result;
+
 class BookmarkModel extends DatabaseModel
 {
     /**

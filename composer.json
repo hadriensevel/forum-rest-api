@@ -6,16 +6,16 @@
   },
   "autoload": {
     "classmap": [
-      "Controller",
-      "Model",
-      "Mailer"
+      "src/Controller",
+      "src/Model",
+      "src/Mailer"
     ],
     "files": [
-      "router.php",
-      "inc/config.php",
-      "middlewares/authentication.php",
-      "middlewares/cors.php",
-      "utils/error.php"
+      "config/config.php",
+      "src/router/router.php",
+      "src/middlewares/authentication.php",
+      "src/middlewares/cors.php",
+      "src/utils/error.php"
     ]
   }
 }

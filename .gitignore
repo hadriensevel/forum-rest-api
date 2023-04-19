@@ -1,5 +1,5 @@
 # Config file
-/inc/config.php
+/config/config.php
 
 # htaccess file
 /.htaccess

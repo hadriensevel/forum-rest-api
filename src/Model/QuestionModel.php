@@ -5,6 +5,10 @@
  * File: QuestionModel.php
  */
 
+namespace Model;
+use Exception;
+use mysqli_result;
+
 class QuestionModel extends DatabaseModel
 {
 
@@ -16,7 +20,7 @@ class QuestionModel extends DatabaseModel
      */
     public function getQuestions(int $limit): false|mysqli_result
     {
-        $query = "SELECT question_date, users.name, topics.category, topics.number, topics.name AS topic_name, questions.id, id_notes_div, question, title, l.likes, has_accepted_answer, anonymous
+        $query = "SELECT questions.id, question_date, users.name, topics.category, topics.number, topics.name AS topic_name, id_notes_div, question, title, l.likes, has_accepted_answer, anonymous
         FROM questions
         LEFT JOIN users
         ON questions.id_user = users.sciper 
@@ -48,6 +52,13 @@ class QuestionModel extends DatabaseModel
     {
         $query = "INSERT INTO questions (question, id_user, id_topic, title, id_notes_div, anonymous) VALUES (?, ?, ?, ?, ?, ?)";
         $params = array($question, $user, $topicID, $title, $divID, $anonymous);
+        return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
+    }
+
+    public function updateQuestion(): int
+    {
+        $query = "";
+        $params = array();
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }
 

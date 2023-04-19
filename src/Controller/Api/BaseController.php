@@ -5,6 +5,7 @@
  * File: BaseController.php
  */
 
+namespace Controller\Api;
 class BaseController
 {
     /**

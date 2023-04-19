@@ -5,6 +5,10 @@
  * File: LikeModel.php
  */
 
+namespace Model;
+use Exception;
+use mysqli_result;
+
 class LikeModel extends DatabaseModel
 {
     private const TABLE_LIKES_QUESTIONS = 'likes_questions';

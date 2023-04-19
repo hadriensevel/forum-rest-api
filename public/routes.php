@@ -7,7 +7,6 @@
 
 use Controller\Api\LikeController;
 use Controller\Api\QuestionController;
-use Mailer\Mailer;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -49,15 +48,6 @@ delete(API_ROOT_URI . '/like/delete/$questionOrAnswer/$id/$userID', function ($q
     $objFeedController = new LikeController();
     // do something
 });
-
-// Send test email
-get('/send-email', function () {
-    $mailer = new Mailer();
-    $mailer->sendEmail(array('hadrien.sevel@epfl.ch'), 'Test', 'Test');
-});
-
-// Test route
-get('/test', 'test.php');
 
 // Bad request route
 any('/400', '400.php');

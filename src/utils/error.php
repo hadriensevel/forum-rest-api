@@ -5,6 +5,8 @@
  * File: error.php
  */
 
+use Mailer\Mailer;
+
 /**
  * Error handler: email the admin with the error details and send a 500 response
  * Debug mode: display the error details

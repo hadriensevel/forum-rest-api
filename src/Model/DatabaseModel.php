@@ -5,6 +5,12 @@
  * File: DatabaseModel.php
  */
 
+namespace Model;
+use Exception;
+use Mysqli;
+use mysqli_result;
+use mysqli_stmt;
+
 class DatabaseModel
 {
     protected ?mysqli $connection = null;
@@ -70,7 +76,7 @@ class DatabaseModel
      * @throws Exception
      */
     public function createAndRunPreparedStatement(string $query, array $params = array(),
-                                                  bool $returnAffectedRows = false): false|mysqli_result|int
+                                                  bool   $returnAffectedRows = false): false|mysqli_result|int
     {
         $statement = $this->executeStatement($query, $params);
         $result = $statement->get_result();

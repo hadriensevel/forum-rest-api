@@ -5,6 +5,11 @@
  * File: QuestionController.php
  */
 
+namespace Controller\Api;
+
+use Model\QuestionModel;
+use Exception;
+
 class QuestionController extends BaseController
 {
     /**

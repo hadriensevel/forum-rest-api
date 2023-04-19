@@ -5,6 +5,10 @@
  * File: AnswerModel.php
  */
 
+namespace Model;
+use Exception;
+use mysqli_result;
+
 class AnswerModel extends DatabaseModel
 {
     /**

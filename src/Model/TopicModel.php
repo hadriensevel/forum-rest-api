@@ -5,6 +5,10 @@
  * File: TopicModel.php
  */
 
+namespace Model;
+use Exception;
+use mysqli_result;
+
 class TopicModel extends DatabaseModel
 {
     /**

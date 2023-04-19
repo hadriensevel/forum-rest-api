@@ -7,8 +7,8 @@ This is a REST API for the Analysis I forum written in PHP.
 1. Clone the repository: `git clone git@github.com:hadriensevel/forum-rest-api.git`
 2. Navigate to the project directory: `cd forum-rest-api`
 3. Run [Composer](https://getcomposer.org) to install the dependencies: `composer update`
-4. Create a MySQL database and import the `database.sql` file. Via command-line, you can do this by running the following command: `mysql -u <username> -p <database_name> < database.sql`
-5. Copy the `inc/config.example.php` file to `inc/config.php and fill in the configuration with your database credentials and other settings.
+4. Create a MySQL database and import the `database/database.sql` file. Via command-line, you can do this by running the following command: `mysql -u <username> -p <database_name> < database/database.sql`
+5. Copy the `config/config.example.php` file to `config/config.php` and fill in the configuration with your database credentials and other settings.
 6. Configure your web server. If you're using Apache, add the following lines to your `.htaccess` file located in the project root. If the file doesn't exist, create a new `.htaccess` file and add the following content:
     ```apache
     RewriteEngine On

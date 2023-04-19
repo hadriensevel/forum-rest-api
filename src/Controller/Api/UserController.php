@@ -5,6 +5,11 @@
  * File: UserController.php
  */
 
+namespace Controller\Api;
+
+use Model\UserModel;
+use Exception;
+
 class UserController extends BaseController
 {
     /**

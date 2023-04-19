@@ -5,6 +5,10 @@
  * File: UserModel.php
  */
 
+namespace Model;
+use Exception;
+use mysqli_result;
+
 class UserModel extends DatabaseModel
 {
     /**

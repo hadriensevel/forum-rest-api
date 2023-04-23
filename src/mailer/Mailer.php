@@ -16,7 +16,7 @@ class Mailer
     private PHPMailer $mailer;
 
     /**
-     * mailer constructor.
+     * Mailer constructor.
      * @throws Exception
      */
     public function __construct()
@@ -98,7 +98,7 @@ class Mailer
             $this->mailer->send();
 
             // Save the email in the "Sent" folder
-            // $this->saveEmail();
+            $this->saveEmail();
 
             // Catch errors
         } catch (Exception $e) {

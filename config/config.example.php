@@ -4,7 +4,7 @@
 const API_NAME = '';
 const API_ROOT_URI = '';
 const API_DEBUG = false;
-const API_ADMIN_EMAILS = array('');
+const API_ADMIN_EMAILS = [];
 
 // Database configuration
 const DB_HOST = '';
@@ -13,7 +13,7 @@ const DB_PASS = '';
 const DB_NAME = '';
 
 // CORS configuration
-const ALLOWED_ORIGINS = array();
+const ALLOWED_ORIGINS = [];
 
 // Mailer configuration
 const MAILER_HOST = '';

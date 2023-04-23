@@ -2,13 +2,14 @@
   "require": {
     "phpmailer/phpmailer": "^6.8",
     "ext-mysqli": "*",
-    "ext-imap": "*"
+    "ext-imap": "*",
+    "ext-curl": "*"
   },
   "autoload": {
     "classmap": [
-      "src/Controller",
-      "src/Model",
-      "src/Mailer"
+      "src/controllers",
+      "src/models",
+      "src/mailer"
     ],
     "files": [
       "config/config.php",

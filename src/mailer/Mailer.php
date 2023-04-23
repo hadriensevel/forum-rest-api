@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2023. Hadrien Sevel
  * Project: forum-rest-api
- * File: Mailer.php
+ * File: mailer.php
  */
 
 namespace Mailer;
@@ -16,7 +16,7 @@ class Mailer
     private PHPMailer $mailer;
 
     /**
-     * Mailer constructor.
+     * mailer constructor.
      * @throws Exception
      */
     public function __construct()
@@ -69,6 +69,7 @@ class Mailer
      */
     public function sendErrorEmail(string $errorId, string $error): void
     {
+        $error = str_replace('\n', '<br />', $error);
         $body = '<h1>' . $errorId . '</h1><pre style="white-space: pre-wrap">' . $error . '</pre>';
         $this->sendEmail(API_ADMIN_EMAILS, '[' . API_NAME . '] ERROR: ' . $errorId, $body);
     }
@@ -97,7 +98,7 @@ class Mailer
             $this->mailer->send();
 
             // Save the email in the "Sent" folder
-            $this->saveEmail();
+            // $this->saveEmail();
 
             // Catch errors
         } catch (Exception $e) {

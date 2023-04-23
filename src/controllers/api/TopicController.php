@@ -21,12 +21,8 @@ class TopicController extends BaseController
      */
     public function getTopic(string $topic, string $topicNumber): int|null
     {
-        try {
-            $topicModel = new TopicModel();
-            $response = $topicModel->getTopic($topic, $topicNumber);
-            return $response->fetch_assoc()['IDTopic'] ?? null;
-        } catch (Exception $e) {
-            throw new Exception($e->getMessage());
-        }
+        $topicModel = new TopicModel();
+        $response = $topicModel->getTopic($topic, $topicNumber);
+        return $response->fetch_assoc()['IDTopic'] ?? null;
     }
 }

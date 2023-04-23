@@ -9,7 +9,7 @@ namespace Controller\Api;
 class BaseController
 {
     /**
-     * Return a 404 error if the method doesn't exist
+     * Return a 400 error if the method doesn't exist
      * @param $name
      * @param $arguments
      * @return void

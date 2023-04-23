@@ -90,7 +90,7 @@ class TequilaClient
      */
     public function __construct(string $sServer = '', ?int $iTimeout = null)
     {
-        // If curl is not found, return an error.
+        // If curl is not found, throws an exception.
         if (!extension_loaded('curl')) {
             throw new Exception('CURL Extension is not loaded.');
         }
@@ -533,12 +533,6 @@ class TequilaClient
     {
         return $this->iTimeout;
     }
-
-    /**
-     * Set the cookie parameters. Very useful if you have page on your
-     * website that have different access rights than the other pages.
-     * Use this function to set the cookie name for thoses pages.
-     */
 
     /**
      * Set the cookie name parameters.

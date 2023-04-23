@@ -17,7 +17,7 @@ function checkAuthentication(): void
     $tequila = new TequilaClient();
 
     // Call the LoadSession function to check if the user is authenticated
-    $isAuthenticated = $tequila->LoadSession();
+    $isAuthenticated = $tequila->loadSession();
 
     // Check if the user is authenticated
     if (!$isAuthenticated) {
@@ -28,4 +28,43 @@ function checkAuthentication(): void
             'error' => 'Unauthorized'
         )));
     }
+}
+
+/**
+ * Authenticate with Tequila
+ * @param string $appName Name to display on the Tequila login page.
+ * @param string $appURL URL of the application to redirect the user after the authentication.
+ * @return void
+ */
+function authenticate(string $appName, string $appURL): void
+{
+    // Create an instance of the TequilaClient class
+    $tequila = new TequilaClient();
+
+    // Set Tequila parameters
+    $tequila->setApplicationName($appName);
+    $tequila->setWantedAttributes(array(
+        'displayname',
+        'email',
+        'uniqueid'
+    ));
+    $tequila->SetAllowsFilter('org=epfl');
+    $tequila->setApplicationURL($appURL);
+
+    // Call the Authenticate function
+    $tequila->authenticate();
+}
+
+/**
+ * Logout from Tequila
+ * @param string $redirectURL URL to redirect the user after the logout.
+ * @return void
+ */
+function logout(string $redirectURL = ''): void
+{
+    // Create an instance of the TequilaClient class
+    $tequila = new TequilaClient();
+
+    // Call the Logout function to redirect the user to the Tequila logout page
+    $tequila->logout($redirectURL);
 }

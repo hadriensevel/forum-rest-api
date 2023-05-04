@@ -7,6 +7,9 @@
 
 use Mailer\Mailer;
 
+// Hide errors
+ini_set('display_errors', 0);
+
 /**
  * Error handler: email the admin with the error details and send a 500 response
  * Debug mode: display the error details
@@ -17,6 +20,7 @@ function errorHandler($error): void
 {
     $errorId = uniqid('error_');
     if (API_DEBUG) {
+        header('HTTP/1.1 500 Internal Server Error');
         echo '<pre>';
         echo 'Error ID: ' . $errorId . '<br />';
         print_r($error);

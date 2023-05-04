@@ -40,9 +40,6 @@
 // Start output buffering, for the authentication redirection to work...
 ob_start();
 
-// Load configuration file
-require_once('tequila_config.inc.php');
-
 // Constants declarations
 const LNG_ENGLISH = 1;
 const LNG_FRENCH = 0;
@@ -637,7 +634,11 @@ class TequilaClient
         }
 
         $this->createRequest();
-        setcookie($this->sCookieName, $this->sKey);
+        setcookie($this->sCookieName, $this->sKey, [
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
 
         $url = $this->getAuthenticationUrl();
         header('Location: ' . $url);

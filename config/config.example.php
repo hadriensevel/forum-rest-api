@@ -23,3 +23,9 @@ const MAILER_PASSWORD = '';
 const MAILER_FROM = '';
 const MAILER_FROM_NAME = '';
 const MAILER_IMAP_SENT_FOLDER = '';
+
+// Tequila configuration
+const TEQUILA_CONFIG = [
+    'sServer' => '',
+    'iTimeout' => '',
+];

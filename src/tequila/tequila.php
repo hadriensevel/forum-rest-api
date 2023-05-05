@@ -45,7 +45,7 @@ const LNG_ENGLISH = 1;
 const LNG_FRENCH = 0;
 
 const COOKIE_LIFE = 86400;
-const COOKIE_NAME = 'TequilaPHP';
+const COOKIE_NAME = 'TequilaSession';
 const MIN_SESSION_TIMEOUT = 600;
 
 class TequilaClient
@@ -638,6 +638,7 @@ class TequilaClient
             'secure' => true,
             'httponly' => true,
             'samesite' => 'Lax',
+            'path' => '/',
         ]);
 
         $url = $this->getAuthenticationUrl();

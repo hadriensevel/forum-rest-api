@@ -7,6 +7,8 @@
 
 require_once __DIR__ . '/../tequila/tequila.php';
 
+use Controller\Api\UserController;
+
 /**
  * Check if the user is authenticated
  * @return void
@@ -16,12 +18,9 @@ function checkAuthentication(): void
     // Create an instance of the TequilaClient class
     $tequila = new TequilaClient();
 
-    // Call the LoadSession function to check if the user is authenticated
-    $isAuthenticated = $tequila->loadSession();
-
     // Check if the user is authenticated
-    if (!$isAuthenticated) {
-        // Send an error response indicating that the user is not authenticated
+    if (!$tequila->loadSession()) {
+        // If not, send an error response
         header('HTTP/1.1 401 Unauthorized');
         header('Content-Type: application/json; charset=utf-8');
         exit(json_encode(array(
@@ -31,12 +30,12 @@ function checkAuthentication(): void
 }
 
 /**
- * Authenticate with Tequila
+ * Authenticate with Tequila and store user information in the database if needed
  * @param string $appName Name to display on the Tequila login page.
- * @param string $appURL URL of the application to redirect the user after the authentication.
  * @return void
+ * @throws Exception
  */
-function authenticate(string $appName, string $appURL): void
+function authenticate(string $appName): void
 {
     // Create an instance of the TequilaClient class
     $tequila = new TequilaClient();
@@ -48,11 +47,21 @@ function authenticate(string $appName, string $appURL): void
         'email',
         'uniqueid'
     ));
-    $tequila->SetAllowsFilter('org=epfl');
-    $tequila->setApplicationURL($appURL);
+    $tequila->setAllowsFilter('org=epfl');
 
-    // Call the Authenticate function
+    // Call the authenticate function
     $tequila->authenticate();
+
+    // Get the user information
+    $sciper = $tequila->getValue('uniqueid');
+    $name = $tequila->getValue('displayname');
+    $email = $tequila->getValue('email');
+
+    // Check if the user is in the database and add it if not
+    $userController = new UserController();
+    if (!$userController->checkUser($sciper)) {
+        $userController->addUser($sciper, $name, $email);
+    }
 }
 
 /**
@@ -65,6 +74,25 @@ function logout(string $redirectURL = ''): void
     // Create an instance of the TequilaClient class
     $tequila = new TequilaClient();
 
-    // Call the Logout function to redirect the user to the Tequila logout page
+    // Call the logout function
     $tequila->logout($redirectURL);
+}
+
+/**
+ * Get and send the user information
+ * @return void
+ * @throws Exception
+ */
+function getUserDetails(): void
+{
+    // Create an instance of the UserController class
+    $userController = new UserController();
+
+    // Get the user information from the database
+    $userDetails =  $userController->getUserDetails($_SESSION['uniqueid']);
+
+    // Send the user information
+    header('HTTP/1.1 200 OK');
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($userDetails);
 }

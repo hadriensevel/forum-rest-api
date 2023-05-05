@@ -51,4 +51,17 @@ class UserController extends BaseController
         $response = $userModel->getUser($sciper);
         return $response->fetch_assoc();
     }
+
+    /**
+     * Check if the user is an admin
+     * @param int $sciper
+     * @return bool
+     * @throws Exception
+     */
+    public function isUserAdmin(int $sciper): bool
+    {
+        $userModel = new UserModel();
+        $response = $userModel->getUser($sciper);
+        return $response->fetch_assoc()['role'] == 'admin';
+    }
 }

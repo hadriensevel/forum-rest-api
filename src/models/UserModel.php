@@ -16,7 +16,7 @@ class UserModel extends DatabaseModel
      * @return false|mysqli_result
      * @throws Exception
      */
-    public function checkUser(int $sciper): false|mysqli_result
+    public function getUser(int $sciper): false|mysqli_result
     {
         $query = "SELECT * FROM users WHERE sciper = ?";
         $params = array($sciper);

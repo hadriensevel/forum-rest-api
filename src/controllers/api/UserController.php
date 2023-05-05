@@ -21,8 +21,8 @@ class UserController extends BaseController
     public function checkUser(int $sciper): bool
     {
         $userModel = new UserModel();
-        $response = $userModel->checkUser($sciper);
-        return $response->fetch_assoc()['IDUser'] ?? false;
+        $response = $userModel->getUser($sciper);
+        return $response->fetch_assoc()['sciper'] ?? false;
     }
 
     /**
@@ -37,5 +37,18 @@ class UserController extends BaseController
     {
         $userModel = new UserModel();
         $userModel->addUser($sciper, $name, $email);
+    }
+
+    /**
+     * Get the user information
+     * @param int $sciper
+     * @return array
+     * @throws Exception
+     */
+    public function getUserDetails(int $sciper): array
+    {
+        $userModel = new UserModel();
+        $response = $userModel->getUser($sciper);
+        return $response->fetch_assoc();
     }
 }

@@ -12,80 +12,203 @@ use Exception;
 
 class QuestionController extends BaseController
 {
+//    /**
+//     * Get the list of the questions
+//     * @return void
+//     * @throws Exception
+//     */
+//    public function listAction(): void
+//    {
+//        $arrQueryStringParams = $this->getQueryStringParams();
+//
+//        $questionModel = new QuestionModel();
+//
+//        $intLimit = 10;
+//        if (isset($arrQueryStringParams['limit']) && $arrQueryStringParams['limit']) {
+//            $intLimit = $arrQueryStringParams['limit'];
+//        }
+//
+//        $arrQuestion = $questionModel->getQuestions($intLimit);
+//        $responseData = $arrQuestion->fetch_all(MYSQLI_ASSOC);
+//
+//        $this->sendOutput(
+//            'HTTP/1.1 200 OK',
+//            $responseData
+//        );
+//    }
+
     /**
-     * Get the list of the questions
+     * Get the number of questions for a page, or a page with a div id
+     * @param string $pageId The ID of the page.
+     * @param string $divId The ID of the notes division (optional).
      * @return void
      * @throws Exception
      */
-    public function listAction(): void
+    public function getQuestionsCountForPage(string $pageId, string $divId = ''): void
     {
-        $arrQueryStringParams = $this->getQueryStringParams();
-
         $questionModel = new QuestionModel();
 
-        $intLimit = 10;
-        if (isset($arrQueryStringParams['limit']) && $arrQueryStringParams['limit']) {
-            $intLimit = $arrQueryStringParams['limit'];
-        }
+        // Fetch the number of questions from the database
+        $result = $questionModel->getQuestionsCount($pageId, $divId);
 
-        $arrQuestion = $questionModel->getQuestions($intLimit);
-        $responseData = $arrQuestion->fetch_all(MYSQLI_ASSOC);
+        $data = $result->fetch_assoc();
+        $response = isset($data['questions_count']) ? (int)$data['questions_count'] : 0;
 
         $this->sendOutput(
             'HTTP/1.1 200 OK',
-            $responseData
+            array('questions_count' => $response)
         );
     }
 
     /**
+     * Get the count of questions for each divId associated with the given pageId.
+     * @param string $pageId The ID of the page.
+     * @throws Exception
+     */
+    public function getDivQuestionCount(string $pageId): void {
+        $questionModel = new QuestionModel();
+
+        // Fetch the count of questions for each divId
+        $result = $questionModel->getQuestionCountByDivId($pageId);
+
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $data[] = [
+                'div_id' => $row['id_notes_div'],
+                'questions_count' => (int) $row['questions_count']
+            ];
+        }
+
+        $this->sendOutput(
+            'HTTP/1.1 200 OK',
+            $data
+        );
+    }
+
+/**
+     * Get the list of questions for a page, or a page with a div id
+     * @param string $pageId The ID of the page.
+     * @param string|null $divId The ID of the notes div (optional).
+     * @return void
+     * @throws Exception
+     */
+    public function fetchQuestionsByPage(string $pageId, ?string $divId = null): void
+    {
+        $questionModel = new QuestionModel();
+
+        $result = $questionModel->getQuestionsByPage($pageId, $divId);
+
+        $questions = [];
+        while ($row = $result->fetch_assoc()) {
+            $questions[] = $row;
+        }
+
+        $this->sendOutput(
+            'HTTP/1.1 200 OK',
+            array('questions' => $questions)
+        );
+    }
+
+
+    /**
+     * Get a question by its ID along with all its associated answers.
+     * @param int $questionId The ID of the question.
+     * @param int|null $userId The ID of the current user (optional).
+     * @return void
+     * @throws Exception
+     */
+    public function fetchQuestion(int $questionId, ?int $userId = null): void
+    {
+        $strErrorDesc = $strErrorHeader = '';
+
+        // Create an instance of the model
+        $questionModel = new QuestionModel();
+
+        // Fetch question and its answers from the model
+        $response = $questionModel->getQuestionWithAnswers($questionId, $userId);
+
+        // Check if there's any data
+        if (!$response) {
+            $strErrorDesc = 'Invalid question ID';
+            $strErrorHeader = 'HTTP/1.1 400 Bad Request';
+        }
+
+        // Send the appropriate response
+        if (!$strErrorDesc) {
+            $this->sendOutput(
+                'HTTP/1.1 200 OK',
+                $response
+            );
+        } else {
+            $this->sendOutput(
+                $strErrorHeader,
+                array('error' => $strErrorDesc)
+            );
+        }
+    }
+
+    /**
      * Create a new question
-     * The request body must be a JSON object with the following fields:
-     * - topic: the topic of the question (string: 'section', 'exercise', 'quiz' or empty string for general questions)
-     * - topicNumber: the topic number (string, e.g. '1-2')
-     * - question: the question (string)
-     * - sciper: the sciper number of the user who asked (int)
-     * - title: the title of the question (string or empty string)
-     * - divID: the ID of the div where the question is located (int or null)
-     * - anonymous: true if the question is anonymous, false otherwise (bool)
      * @return void
      * @throws Exception
      */
     public function create(): void
     {
-        $strErrorDesc = $strErrorHeader = $responseData = '';
+        $strErrorDesc = $strErrorHeader = '';
 
         // Check Content-Type
-        $contentType = isset($_SERVER["CONTENT_TYPE"]) ? trim($_SERVER["CONTENT_TYPE"]) : '';
-        if ($contentType !== 'application/json') {
-            $strErrorDesc = 'Content-Type must be application/json';
+        if (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') === false) {
+            $strErrorDesc = 'Content-Type must be multipart/form-data';
             $strErrorHeader = 'HTTP/1.1 400 Bad Request';
         } else {
             // Read the raw POST data
-            $rawData = file_get_contents('php://input');
+            $postData = $_POST;
 
-            // Decode the JSON data into a PHP object or array
-            $postData = json_decode($rawData, true);
+            // Get the image if there is one
+            $imageName = null;
+
+            // TODO: check image type and size before saving it
+            // If there is an image, give it a random name and move it to the uploads folder
+            if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                $imageName = uniqid() . '.' . pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+                move_uploaded_file($_FILES['image']['tmp_name'], __DIR__ . '/../../../public/uploads/' . $imageName);
+            }
 
             // Check if the required fields are present
-            if (isset($postData['topic']) && isset($postData['topicNumber']) && isset($postData['question']) && isset($postData['sciper'])) {
-                $topicController = new TopicController();
-                $topicID = $topicController->getTopic($postData['topic'], $postData['topicNumber']);
+            if (isset($postData['question-title']) &&
+                isset($postData['question-body']) &&
+                isset($postData['question-location']) &&
+                isset($postData['page']) &&
+                isset($postData['sciper'])) {
 
-                // Check if the topic exists
-                if ($topicID) {
-                    $questionModel = new QuestionModel();
+                // Escape HTML in the title and body
+                $postData['question-title'] = htmlspecialchars($postData['question-title']);
+                $postData['question-body'] = htmlspecialchars($postData['question-body']);
 
-                    // Save the new question to the database
-                    $newQuestionId = $questionModel->addQuestion($postData['question'],
-                        $postData['sciper'], $topicID, $postData['title'], $postData['divID'], $postData['anonymous']);
+                // If div id is "undefined", set it to null
+                if ($postData['div-id'] === 'undefined') {
+                    $postData['div-id'] = null;
+                }
 
-                    // Check if the question has been saved
-                    if (!$newQuestionId) {
-                        throw new Exception('Error while saving the question');
-                    }
+                // TODO: check that the sciper received corresponds to the sciper of the user who is logged in
 
-                } else {
-                    $strErrorDesc = 'Invalid topic';
+                // Create a new question model
+                $questionModel = new QuestionModel();
+
+                // Save the new question to the database
+                $affectedRows = $questionModel->addQuestion(
+                    $postData['question-title'],
+                    $postData['question-body'],
+                    $imageName,
+                    (int) $postData['sciper'],
+                    $postData['page'],
+                    $postData['div-id'],
+                    $postData['question-location'],
+                );
+
+                // Check if the question has been saved
+                if ($affectedRows === 0) {
+                    $strErrorDesc = 'Error while saving the question (check the request body)';
                     $strErrorHeader = 'HTTP/1.1 400 Bad Request';
                 }
 
@@ -106,7 +229,6 @@ class QuestionController extends BaseController
             );
         }
     }
-
 
     /**
      * Delete a question

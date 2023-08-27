@@ -63,10 +63,10 @@ class LikeModel extends DatabaseModel
      * MySQL query to delete a like
      * @param int $userID
      * @param int $itemID
-     * @return false|mysqli_result
+     * @return int
      * @throws Exception
      */
-    public function deleteLike(int $userID, int $itemID): false|mysqli_result
+    public function deleteLike(int $userID, int $itemID): int
     {
         $query = "DELETE FROM $this->table WHERE id_user = ? AND $this->id = ?";
         $params = array($userID, $itemID);

@@ -21,11 +21,7 @@ function checkAuthentication(): void
     // Check if the user is authenticated
     if (!$tequila->loadSession()) {
         // If not, send an error response
-        header('HTTP/1.1 401 Unauthorized');
-        header('Content-Type: application/json; charset=utf-8');
-        exit(json_encode(array(
-            'error' => 'Unauthorized'
-        )));
+        sendUnauthorizedResponse();
     }
 }
 
@@ -89,10 +85,41 @@ function getUserDetails(): void
     $userController = new UserController();
 
     // Get the user information from the database
-    $userDetails =  $userController->getUserDetails($_SESSION['uniqueid']);
+    $userDetails = $userController->getUserDetails($_SESSION['uniqueid']);
 
     // Send the user information
     header('HTTP/1.1 200 OK');
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($userDetails);
+}
+
+/**
+ * Check if the user is an admin
+ * @return void
+ * @throws Exception
+ */
+function ensureAdmin(): void
+{
+    // Create an instance of the UserController class
+    $userController = new UserController();
+
+    // If the user is not an admin, send an error response
+    if (!$userController->isUserAdmin($_SESSION['uniqueid'])) {
+        // If not, send an error response
+        sendUnauthorizedResponse();
+    }
+}
+
+/**
+ * Send an unauthorized response
+ * @return void
+ */
+function sendUnauthorizedResponse(): void
+{
+    // If not, send an error response
+    header('HTTP/1.1 401 Unauthorized');
+    header('Content-Type: application/json; charset=utf-8');
+    exit(json_encode(array(
+        'error' => 'Unauthorized'
+    )));
 }

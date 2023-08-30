@@ -12,31 +12,6 @@ use Exception;
 
 class QuestionController extends BaseController
 {
-//    /**
-//     * Get the list of the questions
-//     * @return void
-//     * @throws Exception
-//     */
-//    public function listAction(): void
-//    {
-//        $arrQueryStringParams = $this->getQueryStringParams();
-//
-//        $questionModel = new QuestionModel();
-//
-//        $intLimit = 10;
-//        if (isset($arrQueryStringParams['limit']) && $arrQueryStringParams['limit']) {
-//            $intLimit = $arrQueryStringParams['limit'];
-//        }
-//
-//        $arrQuestion = $questionModel->getQuestions($intLimit);
-//        $responseData = $arrQuestion->fetch_all(MYSQLI_ASSOC);
-//
-//        $this->sendOutput(
-//            'HTTP/1.1 200 OK',
-//            $responseData
-//        );
-//    }
-
     /**
      * Get the number of questions for a page, or a page with a div id
      * @param string $pageId The ID of the page.
@@ -109,20 +84,21 @@ class QuestionController extends BaseController
         );
     }
 
-
     /**
      * Get a question by its ID along with all its associated answers.
      * @param int $questionId The ID of the question.
-     * @param int|null $userId The ID of the current user (optional).
      * @return void
      * @throws Exception
      */
-    public function fetchQuestion(int $questionId, ?int $userId = null): void
+    public function fetchQuestion(int $questionId): void
     {
         $strErrorDesc = $strErrorHeader = '';
 
         // Create an instance of the model
         $questionModel = new QuestionModel();
+
+        // Get the sciper of the user who is logged in
+        $userId = getSciper();
 
         // Fetch question and its answers from the model
         $response = $questionModel->getQuestionWithAnswers($questionId, $userId);
@@ -156,6 +132,9 @@ class QuestionController extends BaseController
     {
         $strErrorDesc = $strErrorHeader = '';
 
+        // Get the sciper of the user who is logged in
+        $userId = getSciper();
+
         // Check Content-Type
         if (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') === false) {
             $strErrorDesc = 'Content-Type must be multipart/form-data';
@@ -179,7 +158,7 @@ class QuestionController extends BaseController
                 isset($postData['question-body']) &&
                 isset($postData['question-location']) &&
                 isset($postData['page']) &&
-                isset($postData['sciper'])) {
+                isset($userId)) {
 
                 // Escape HTML in the title and body
                 $postData['question-title'] = htmlspecialchars($postData['question-title']);
@@ -190,8 +169,6 @@ class QuestionController extends BaseController
                     $postData['div-id'] = null;
                 }
 
-                // TODO: check that the sciper received corresponds to the sciper of the user who is logged in
-
                 // Create a new question model
                 $questionModel = new QuestionModel();
 
@@ -200,7 +177,7 @@ class QuestionController extends BaseController
                     $postData['question-title'],
                     $postData['question-body'],
                     $imageName,
-                    (int) $postData['sciper'],
+                    $userId,
                     $postData['page'],
                     $postData['div-id'],
                     $postData['question-location'],

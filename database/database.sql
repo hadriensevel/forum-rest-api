@@ -37,7 +37,7 @@ CREATE TABLE questions
     id_notes_div VARCHAR(50)                          DEFAULT NULL,
     location     ENUM ('course', 'exercise') NOT NULL,
     visible      BOOLEAN                              DEFAULT true,
-    resolved     BOOLEAN                              DEFAULT false,
+    resolved     BOOLEAN                              DEFAULT false, -- Denormalized boolean to check if the question is resolved (not in use, check the answers instead)
 #    likes_count    INT                   DEFAULT 0,     -- Denormalized count of likes (not implemented yet)
 #    answers_count  INT                   DEFAULT 0,     -- Denormalized count of answers (not implemented yet)
     FOREIGN KEY (id_user) REFERENCES users (sciper)
@@ -109,6 +109,9 @@ CREATE TABLE feature_flags
 );
 
 # Insert default feature flags
-INSERT INTO feature_flags (name, enabled) VALUES ('authentication', 1);
-INSERT INTO feature_flags (name, enabled) VALUES ('questions', 1);
-INSERT INTO feature_flags (name, enabled) VALUES ('newQuestion', 1);
+INSERT INTO feature_flags (name, enabled)
+VALUES ('authentication', 1);
+INSERT INTO feature_flags (name, enabled)
+VALUES ('questions', 1);
+INSERT INTO feature_flags (name, enabled)
+VALUES ('newQuestion', 1);

@@ -47,6 +47,9 @@ class AnswerController extends BaseController
     {
         $strErrorDesc = $strErrorHeader = '';
 
+        // Get the sciper of the user who is logged in
+        $userId = getSciper();
+
         if (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') === false) {
             $strErrorDesc = 'Content-Type must be multipart/form-data';
             $strErrorHeader = 'HTTP/1.1 400 Bad Request';
@@ -56,7 +59,7 @@ class AnswerController extends BaseController
 
             // Check if the required fields are present
             if (isset($postData['answer-body']) &&
-                isset($postData['sciper']) &&
+                isset($userId) &&
                 isset($postData['question-id'])) {
 
                 // Escape HTML in the body
@@ -66,7 +69,7 @@ class AnswerController extends BaseController
                 $answerModel = new AnswerModel();
 
                 // Add the answer to the database
-                $affectedRows = $answerModel->addAnswer($postData['answer-body'], $postData['sciper'], $postData['question-id']);
+                $affectedRows = $answerModel->addAnswer($postData['answer-body'], $userId, $postData['question-id']);
 
                 // Check if the answer was added
                 if ($affectedRows === 0) {

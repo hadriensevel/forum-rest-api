@@ -8,16 +8,9 @@
 use Controller\Api\QuestionController;
 use Controller\Api\AnswerController;
 use Controller\Api\LikeController;
+use Controller\Api\FeatureFlagsController;
 
 require_once __DIR__ . '/../vendor/autoload.php';
-
-// Available actions
-// - list : get the list of questions (parameter: limit (optional))
-//get(API_ROOT_URI . '/question/$action', function ($action) {
-//    setCorsHeaders();
-//    $objFeedController = new QuestionController();
-//    $objFeedController->{$action . 'Action'}();
-//});
 
 // Get the number of questions in a page
 get(API_ROOT_URI . '/get-questions-count/$pageId', function ($pageId) {
@@ -44,7 +37,7 @@ get(API_ROOT_URI . '/get-questions/$pageId', function ($pageId) {
 });
 
 // Get questions in a page with a div id
-get(API_ROOT_URI . '/get-questions/$pageId/$divId', function ($pageId, $divId = '') {
+get(API_ROOT_URI . '/get-questions/$pageId/$divId', function ($pageId, $divId = null) {
     setCorsHeaders();
     (new QuestionController())->fetchQuestionsByPage($pageId, $divId);
 });
@@ -62,21 +55,18 @@ post(API_ROOT_URI . '/question/new', function () {
     (new QuestionController())->create();
 });
 
-// Delete a question (parameter: question id (required))
+// Delete a question (only for admins)
 delete(API_ROOT_URI . '/question/delete/$id', function ($id) {
     setCorsHeaders();
     checkAuthentication();
-    if (!$id) {
-        header('Location: /400');
-        exit;
-    }
+    ensureAdmin();
     (new QuestionController())->delete($id);
 });
 
 // Add an answer to a question
 post(API_ROOT_URI . '/answer/new', function () {
     setCorsHeaders();
-    //checkAuthentication();
+    checkAuthentication();
     (new AnswerController())->addAnswerToQuestion();
 });
 
@@ -86,16 +76,24 @@ get(API_ROOT_URI . '/image/$filename', function ($filename) {
     serveFile('uploads/'. $filename);
 });
 
-post(API_ROOT_URI . '/like/add/$questionId/$userId', function ($questionId, $userId) {
+// Add a like to a question
+post(API_ROOT_URI . '/like/add/$questionId', function ($questionId) {
     setCorsHeaders();
-    //checkAuthentication();
-    (new LikeController())->addLikeToQuestion($questionId, $userId);
+    checkAuthentication();
+    (new LikeController())->addLikeToQuestion($questionId);
 });
 
-delete(API_ROOT_URI . '/like/remove/$questionId/$userId', function ($questionId, $userId) {
+// Remove a like from a question
+delete(API_ROOT_URI . '/like/remove/$questionId', function ($questionId) {
     setCorsHeaders();
-    //checkAuthentication();
-    (new LikeController())->deleteLikeFromQuestion($questionId, $userId);
+    checkAuthentication();
+    (new LikeController())->deleteLikeFromQuestion($questionId);
+});
+
+// Feature flags routes
+get(API_ROOT_URI . '/feature-flags', function () {
+    setCorsHeaders();
+    (new FeatureFlagsController())->fetchFeatureFlags();
 });
 
 // Authentication routes
@@ -120,12 +118,11 @@ get('/auth/details', function () {
 
 // Admin routes
 // TODO: add admin routes
-get(ADMIN_ROOT_URI, function () {
-    setCorsHeaders();
-    checkAuthentication();
-    ensureAdmin();
-    echo 'Hello admin!';
-});
+//get(ADMIN_ROOT_URI, function () {
+//    setCorsHeaders();
+//    checkAuthentication();
+//    ensureAdmin();
+//});
 
 // PHP info route
 get(API_ROOT_URI . '/php-info', function () {

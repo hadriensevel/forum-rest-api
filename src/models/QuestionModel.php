@@ -12,32 +12,6 @@ use mysqli_result;
 
 class QuestionModel extends DatabaseModel
 {
-
-//    /**
-//     * MySQL query to get the list of the questions
-//     * @param int $limit
-//     * @return false|mysqli_result
-//     * @throws Exception
-//     */
-//    public function getQuestions(int $limit): false|mysqli_result
-//    {
-//        $query = "SELECT questions.id, question_date, users.name, topics.category, topics.number, topics.name AS topic_name, id_notes_div, question, title, l.likes, has_accepted_answer, anonymous
-//        FROM questions
-//        LEFT JOIN users
-//        ON questions.id_user = users.sciper
-//        LEFT JOIN topics
-//        ON questions.id_topic = topics.id_topic
-//        LEFT JOIN (SELECT id_question, COUNT(*) AS likes FROM likes_questions GROUP BY id_question) l
-//        ON questions.id = l.id_question
-//        LEFT JOIN bookmarks
-//        ON questions.id = bookmarks.id_question
-//        WHERE visible = true
-//        GROUP BY questions.id
-//        LIMIT ?";
-//        $params = array($limit);
-//        return $this->createAndRunPreparedStatement($query, $params);
-//    }
-
     /**
      * MySQL query to get the number of questions for a page in the lecture notes or exercises
      * or for an id in the lecture notes if specified
@@ -132,7 +106,7 @@ class QuestionModel extends DatabaseModel
      * @return array An associative array containing the question and its answers.
      * @throws Exception
      */
-    public function getQuestionWithAnswers(int $questionId, ?int $userId = null): array
+    public function getQuestionWithAnswers(int $questionId, ?int $userId): array
     {
         // Base query to fetch the main question details
         $questionQuery = "
@@ -167,13 +141,13 @@ class QuestionModel extends DatabaseModel
 
         $questionQuery .= " WHERE questions.id = ?";
 
-        if ($userId) $questionParams = array($questionId, $userId);
+        if ($userId) $questionParams = array($userId, $questionId);
         else $questionParams = array($questionId);
 
         $questionResult = $this->createAndRunPreparedStatement($questionQuery, $questionParams);
 
         if (!$questionResult || $questionResult->num_rows === 0) {
-            throw new Exception('Question not found');
+            return [];
         }
 
         $question = $questionResult->fetch_assoc();

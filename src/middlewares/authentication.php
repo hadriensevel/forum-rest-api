@@ -75,6 +75,26 @@ function logout(string $redirectURL = ''): void
 }
 
 /**
+ * Util function to get the user's unique ID if the user is authenticated
+ * @return int|null
+ */
+function getSciper(): ?int
+{
+    // Create an instance of the TequilaClient class
+    $tequila = new TequilaClient();
+
+    // Check if the user is authenticated
+    if (!$tequila->loadSession()) {
+        // If not, return null
+        return null;
+    }
+
+    // Return the user's unique ID
+    return $tequila->getValue('uniqueid');
+}
+
+
+/**
  * Get and send the user information
  * @return void
  * @throws Exception

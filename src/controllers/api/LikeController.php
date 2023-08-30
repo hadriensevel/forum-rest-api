@@ -14,15 +14,28 @@ class LikeController extends BaseController
 {
     /**
      * Add a like to a question
-     * @param int $questionID
-     * @param int $userID
+     * @param int $questionId
      * @return void
      * @throws Exception
      */
-    public function addLikeToQuestion(int $questionID, int $userID): void
+    public function addLikeToQuestion(int $questionId): void
     {
         $likeModel = new LikeModel();
-        $affectedRows = $likeModel->addLike($userID, $questionID);
+
+        // Get the sciper of the user who is logged in
+        $userId = getSciper();
+
+        // Check if the user has already liked the question
+        if ($likeModel->checkLike($userId, $questionId)) {
+            $this->sendOutput(
+                'HTTP/1.1 400 Bad Request',
+                array('message' => 'User has already liked this question')
+            );
+            return;
+        }
+
+        // Add the like
+        $affectedRows = $likeModel->addLike($userId, $questionId);
 
         if ($affectedRows === 0) {
             $this->sendOutput(
@@ -38,15 +51,18 @@ class LikeController extends BaseController
 
     /**
      * Delete a like from a question
-     * @param int $questionID
-     * @param int $userID
+     * @param int $questionId
      * @return void
      * @throws Exception
      */
-    public function deleteLikeFromQuestion(int $questionID, int $userID): void
+    public function deleteLikeFromQuestion(int $questionId): void
     {
         $likeModel = new LikeModel();
-        $affectedRows = $likeModel->deleteLike($userID, $questionID);
+
+        // Get the sciper of the user who is logged in
+        $userId = getSciper();
+
+        $affectedRows = $likeModel->deleteLike($userId, $questionId);
 
         if ($affectedRows === 0) {
             $this->sendOutput(

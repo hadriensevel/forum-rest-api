@@ -1,0 +1,8 @@
+# Redirect requests to the routes.php file
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !(\.png|\.jpg|\.webp|\.gif|\.jpeg|\.zip|\.css|\.svg|\.js|\.pdf)$
+RewriteRule (.*) public/routes.php [QSA,L]
+
+# Deny access to all files by default
+Order deny,allow
+Deny from all

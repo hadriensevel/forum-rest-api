@@ -3,14 +3,14 @@
     "phpmailer/phpmailer": "^6.8",
     "ext-mysqli": "*",
     "ext-curl": "*",
-    "ext-fileinfo": "*",
-    "twig/twig": "^3.0"
+    "ext-fileinfo": "*"
   },
   "autoload": {
     "classmap": [
       "src/controllers",
       "src/models",
-      "src/mailer"
+      "src/mailer",
+      "src/users"
     ],
     "files": [
       "config/config.php",

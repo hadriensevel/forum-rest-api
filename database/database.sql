@@ -10,7 +10,7 @@ CREATE TABLE users
     name    VARCHAR(100)                             NOT NULL,
     email   VARCHAR(100)                             NOT NULL,
     role    ENUM ('student', 'assistant', 'teacher') NOT NULL DEFAULT 'student',
-    isAdmin BOOLEAN                                           DEFAULT false
+    is_admin BOOLEAN                                           DEFAULT false
 );
 
 # No topics for now
@@ -37,6 +37,7 @@ CREATE TABLE questions
     id_notes_div VARCHAR(50)                          DEFAULT NULL,
     location     ENUM ('course', 'exercise') NOT NULL,
     visible      BOOLEAN                              DEFAULT true,
+    locked       BOOLEAN                              DEFAULT false,
     resolved     BOOLEAN                              DEFAULT false, -- Denormalized boolean to check if the question is resolved (not in use, check the answers instead)
 #    likes_count    INT                   DEFAULT 0,     -- Denormalized count of likes (not implemented yet)
 #    answers_count  INT                   DEFAULT 0,     -- Denormalized count of answers (not implemented yet)

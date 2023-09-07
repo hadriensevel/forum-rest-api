@@ -45,7 +45,7 @@ const LNG_ENGLISH = 1;
 const LNG_FRENCH = 0;
 
 const COOKIE_LIFE = 86400;
-const COOKIE_NAME = 'TequilaSession';
+const COOKIE_NAME = 'teqkey';
 const MIN_SESSION_TIMEOUT = 600;
 
 class TequilaClient
@@ -637,7 +637,6 @@ class TequilaClient
         setcookie($this->sCookieName, $this->sKey, [
             'secure' => true,
             'httponly' => true,
-            'samesite' => 'Lax',
             'path' => '/',
         ]);
 
@@ -667,7 +666,8 @@ class TequilaClient
 
         // Asking Tequila
         $response = $this->askTequila('createrequest', $this->requestInfos);
-        $this->sKey = substr(trim($response), 4); // 4 = strlen ('key=')
+        if (str_starts_with($response, 'key=')) $this->sKey = substr(trim($response), 4); // 4 = strlen ('key=')
+        else $this->sKey = "";
     }
 
     /**

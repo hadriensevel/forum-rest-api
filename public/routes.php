@@ -55,6 +55,13 @@ post(API_ROOT_URI . '/question/new', function () {
     (new QuestionController())->create();
 });
 
+// Edit a question
+post(API_ROOT_URI . '/question/edit/$id', function ($id) {
+    setCorsHeaders();
+    checkAuthentication();
+    (new QuestionController())->edit($id);
+});
+
 // Delete a question (only for admins)
 delete(API_ROOT_URI . '/question/delete/$id', function ($id) {
     setCorsHeaders();

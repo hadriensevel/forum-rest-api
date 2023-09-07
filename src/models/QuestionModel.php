@@ -71,7 +71,8 @@ class QuestionModel extends DatabaseModel
             title,
             IF(COUNT(DISTINCT acceptedAnswers.id) > 0, TRUE, questions.resolved) AS resolved,
             IFNULL(l.likes, 0) AS likes,
-            IFNULL(a.answers, 0) as answers
+            IFNULL(a.answers, 0) as answers,
+            locked
         FROM questions
         LEFT JOIN (
             SELECT id_question, COUNT(*) AS likes
@@ -117,11 +118,13 @@ class QuestionModel extends DatabaseModel
             body,
             image,
             IFNULL(l.likes, 0) AS likes,
+            locked,
             resolved";
 
         // Add user_liked part if userId is not null
         if ($userId !== null) {
             $questionQuery .= ",
+            CASE WHEN questions.id_user = ? THEN TRUE ELSE FALSE END AS user_is_author,
             CASE WHEN user_likes.id_user IS NOT NULL THEN TRUE ELSE FALSE END AS user_liked";
         }
 
@@ -141,7 +144,7 @@ class QuestionModel extends DatabaseModel
 
         $questionQuery .= " WHERE questions.id = ?";
 
-        if ($userId) $questionParams = array($userId, $questionId);
+        if ($userId) $questionParams = array($userId, $userId, $questionId);
         else $questionParams = array($questionId);
 
         $questionResult = $this->createAndRunPreparedStatement($questionQuery, $questionParams);
@@ -202,10 +205,18 @@ class QuestionModel extends DatabaseModel
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }
 
-    public function updateQuestion(): int
+    /**
+     * MySQL query to edit a question
+     * @param int $id
+     * @param string $title
+     * @param string $body
+     * @return int
+     * @throws Exception
+     */
+    public function editQuestion(int $id, string $title, string $body): int
     {
-        $query = "";
-        $params = array();
+        $query = "UPDATE questions SET title = ?, body = ? WHERE id = ?";
+        $params = array($title, $body, $id);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }
 
@@ -218,6 +229,32 @@ class QuestionModel extends DatabaseModel
     public function deleteQuestion(int $id): int
     {
         $query = "DELETE FROM questions WHERE id = ?";
+        $params = array($id);
+        return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
+    }
+
+    /**
+     * MySQL query to get the author of a question
+     * @param int $id
+     * @return false|mysqli_result
+     * @throws Exception
+     */
+    public function getQuestionAuthor(int $id): false|mysqli_result
+    {
+        $query = "SELECT id_user FROM questions WHERE id = ?";
+        $params = array($id);
+        return $this->createAndRunPreparedStatement($query, $params);
+    }
+
+    /**
+     * MySQL query to lock a question
+     * @param int $id
+     * @return int
+     * @throws Exception
+     */
+    public function lockQuestion(int $id): int
+    {
+        $query = "UPDATE questions SET locked = true WHERE id = ?";
         $params = array($id);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }

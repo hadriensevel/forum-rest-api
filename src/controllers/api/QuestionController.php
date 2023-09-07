@@ -208,6 +208,69 @@ class QuestionController extends BaseController
     }
 
     /**
+     * Edit a question
+     * @param int $id
+     * @return void
+     * @throws Exception
+     */
+    public function edit(int $id): void
+    {
+        $strErrorDesc = $strErrorHeader = '';
+
+        // Get the sciper of the user who is logged in
+        $userId = getSciper();
+
+        // Check Content-Type
+        if (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') === false) {
+            $strErrorDesc = 'Content-Type must be multipart/form-data';
+            $strErrorHeader = 'HTTP/1.1 400 Bad Request';
+        } else {
+            // Read the raw POST data
+            $postData = $_POST;
+
+            // Check if the required fields are present
+            if (isset($postData['question-title']) &&
+                isset($postData['question-body']) &&
+                isset($userId)) {
+
+                // Escape HTML in the title and body
+                $postData['question-title'] = htmlspecialchars($postData['question-title']);
+                $postData['question-body'] = htmlspecialchars($postData['question-body']);
+
+                // Create a new question model
+                $questionModel = new QuestionModel();
+
+                // Save the new question to the database
+                $affectedRows = $questionModel->editQuestion(
+                    $id,
+                    $postData['question-title'],
+                    $postData['question-body'],
+                );
+
+                // Check if the question has been saved
+                if ($affectedRows === 0) {
+                    $strErrorDesc = 'Error while saving the question (check the request body)';
+                    $strErrorHeader = 'HTTP/1.1 400 Bad Request';
+                }
+
+            } else {
+                $strErrorDesc = 'Missing required fields';
+                $strErrorHeader = 'HTTP/1.1 400 Bad Request';
+            }
+        }
+        if (!$strErrorDesc) {
+            $this->sendOutput(
+                'HTTP/1.1 200 OK',
+            );
+        } else {
+            $this->sendOutput(
+                $strErrorHeader,
+                array('error' => $strErrorDesc)
+            );
+        }
+    }
+
+    /**
      * Delete a question
      * @param int $id
      * @return void
@@ -233,5 +296,18 @@ class QuestionController extends BaseController
                 array('error' => $strErrorDesc)
             );
         }
+    }
+
+    /**
+     * Get the author of a question
+     * @param int $id
+     * @return int
+     * @throws Exception
+     */
+    public function getAuthor(int $id): int
+    {
+        $questionModel = new QuestionModel();
+        $response = $questionModel->getQuestionAuthor($id);
+        return $response->fetch_assoc()['id_user'];
     }
 }

@@ -62,6 +62,6 @@ class UserController extends BaseController
     {
         $userModel = new UserModel();
         $response = $userModel->getUser($sciper);
-        return $response->fetch_assoc()['isAdmin'];
+        return $response->fetch_assoc()['is_admin'];
     }
 }

@@ -5,6 +5,7 @@ const API_NAME = '';
 const API_ROOT_URI = '';
 const API_DEBUG = false;
 const API_ADMIN_EMAILS = [];
+const ADMIN_ROOT_URI = '';
 
 // Database configuration
 const DB_HOST = '';

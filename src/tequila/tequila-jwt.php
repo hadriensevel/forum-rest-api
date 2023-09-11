@@ -37,6 +37,13 @@
 
 ========================================================================*/
 
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+use Firebase\JWT\ExpiredException;
+use Exception\ExpiredToken;
+use Exception\InvalidToken;
+use Exception\ExpiredSession;
+
 // Start output buffering, for the authentication redirection to work...
 ob_start();
 
@@ -44,12 +51,12 @@ ob_start();
 const LNG_ENGLISH = 1;
 const LNG_FRENCH = 0;
 
-const COOKIE_LIFE = 86400;
 const COOKIE_NAME = 'teqkey';
-const MIN_SESSION_TIMEOUT = 600;
 
-class TequilaClient
+class TequilaClientJWT
 {
+    private $jwtSecret = JWT_SECRET_KEY;
+
     private array $aLanguages = [
         LNG_ENGLISH => 'english',
         LNG_FRENCH => 'francais',
@@ -557,19 +564,19 @@ class TequilaClient
     }
 
     /**
-     * Load or update a PHP session.
+     * Check the PHP session.
      * @return bool
      */
-    public function loadSession(): bool
+    public function isSessionValid(): bool
     {
         if (!isset($_SESSION['key'])) return false;
 
         /**
-        Check if all the wanted attributes are present in the $_SESSION.
-        If at least one of the attribute is missing, we can consider that information
-        is missing in $_SESSION. In this case, we return false to "force" to create a new
-        session with the wanted attributes. This can happen when several website are
-        running on the same web server and all are using the PHP Tequila Client.
+         * Check if all the wanted attributes are present in the $_SESSION.
+         * If at least one of the attribute is missing, we can consider that information
+         * is missing in $_SESSION. In this case, we return false to "force" to create a new
+         * session with the wanted attributes. This can happen when several website are
+         * running on the same web server and all are using the PHP Tequila Client.
          */
         foreach ($this->aWantedAttributes as $wantedAttribute) {
             if (!array_key_exists($wantedAttribute, $_SESSION)) return false;
@@ -578,10 +585,58 @@ class TequilaClient
             if (!array_key_exists($wishedAttribute, $_SESSION)) return false;
         }
 
-        $sessionTime = time() - $_SESSION['creation'];
-        if ($sessionTime > $this->iTimeout) return false;
-        $this->sKey = $_SESSION['key'];
         return true;
+    }
+
+    /**
+     * Verifies the given JWT token, checks it against session data, and returns the wanted attributes.
+     * @param string $token The JWT token.
+     * @return array|null The decoded token attributes if the token is valid and matches the session, otherwise null.
+     * @throws InvalidToken|ExpiredToken|ExpiredSession
+     */
+    public function verifyTokenAndGetAttributes(string $token): ?array
+    {
+        try {
+            // Decode the token
+            $attributes = (array) JWT::decode($token, new Key($this->jwtSecret, 'HS256'));
+
+            if (!isset($attributes['sessionId'], $attributes['key'])) {
+                throw new InvalidToken('Token is not valid'); // Token doesn't have the required attributes
+            }
+
+            // Set the session ID to the one from the token and start the session
+            session_id($attributes['sessionId']);
+            if (!isset($_SESSION)) session_start();
+
+            // Check if the session is valid
+            if (!$this->checkSession()) {
+                throw new ExpiredSession('The session is not valid');
+            }
+
+            // Check if the 'key' attribute from the token matches the session key
+            if ($attributes['key'] !== $_SESSION['key']) {
+                throw new ExpiredSession('The key of the session doesn\'t correspond to the one of the token');
+            }
+
+            // Return the wanted attributes from the session
+            return $this->extractTokenAttributes();
+        } catch (ExpiredException) {
+            throw new ExpiredToken('Token is expired');
+        }
+    }
+
+    private function checkSession(): bool
+    {
+        return $this->isSessionValid() && isset($_SESSION['creation']) && ($_SESSION['creation'] + $this->iTimeout >= time());
+    }
+
+    private function extractTokenAttributes(): array
+    {
+        $tokenAttributes = [];
+        foreach ($this->aWantedAttributes as $wantedAttribute) {
+            $tokenAttributes[$wantedAttribute] = $_SESSION[$wantedAttribute] ?? null; // Ensure all wanted attributes are set, even if not found in session
+        }
+        return $tokenAttributes;
     }
 
     /**
@@ -608,39 +663,35 @@ class TequilaClient
 
     /**
      * Launches the user authentication process.
-     * @return bool|null Returns true if the user is already authenticated, otherwise void.
+     * @return string Returns the JWT token.
      */
-    public function authenticate(): ?bool
+    public function authenticate(): string
     {
-        if (!isset($_SESSION)) {
-            session_start();
-        }
+        if (!isset($_SESSION)) session_start();
 
-        if ($this->loadSession()) {
-            return true;
-        }
+        $authCheck = $_GET['auth_check'] ?? '';
 
-        $authCheck = $_GET['auth_check'] ?? null;
-        $cookieValue = $_COOKIE[$this->sCookieName] ?? '';
-
-        if (!empty($cookieValue) && $authCheck) {
-            $this->sKey = $cookieValue;
-            $attributes = $this->fetchAttributes($this->sKey, $authCheck);
+        if (!empty($_SESSION['key']) && !empty($authCheck)) {
+            // Process auth_check parameter
+            $attributes = $this->askTequila('fetchattributes', [
+                'key' => $_SESSION['key'],
+                'auth_check' => $authCheck
+            ]);
 
             if ($attributes) {
                 $this->createSession($attributes);
-                return true;
+
+                // Create a new JWT token with the key and an expiration date
+                $jwtData = [
+                    'key' => $_SESSION['key'],
+                    'sessionId' => session_id(),
+                    'exp' => time() + $this->iTimeout
+                ];
+                return JWT::encode($jwtData, $this->jwtSecret, 'HS256');
             }
         }
 
         $this->createRequest();
-        setcookie($this->sCookieName, $this->sKey, [
-            'path' => '/',
-            'secure' => true,
-            'httponly' => true,
-            'samesite' => 'None',
-        ]);
-
         $url = $this->getAuthenticationUrl();
         header('Location: ' . $url);
         exit;
@@ -669,6 +720,7 @@ class TequilaClient
         $response = $this->askTequila('createrequest', $this->requestInfos);
         if (str_starts_with($response, 'key=')) $this->sKey = substr(trim($response), 4); // 4 = strlen ('key=')
         else $this->sKey = "";
+        $_SESSION['key'] = $this->sKey;
     }
 
     /**
@@ -718,6 +770,9 @@ class TequilaClient
         $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'];
         $path = $_SERVER['REQUEST_URI'];
+
+        // Remove the token from the URL
+        $path = preg_replace('/&token=[^&]*/', '', $path);
 
         return "{$protocol}://{$host}{$path}";
     }
@@ -792,7 +847,7 @@ class TequilaClient
     {
         $url = "{$this->sServerUrl}/logout";
         if (!empty($redirectUrl)) {
-            $url .= "?urlaccess=" . urlencode($redirectUrl);
+            $url .= "?urlaccess=" . $redirectUrl;
         }
         return $url;
     }
@@ -804,6 +859,7 @@ class TequilaClient
     private function killSessionFile(): void
     {
         if (!empty($_SESSION)) {
+            session_unset();
             session_destroy();
         }
     }
@@ -825,7 +881,7 @@ class TequilaClient
     private function killSession(): void
     {
         $this->killSessionFile();
-        $this->killSessionCookie();
+        //$this->killSessionCookie();
     }
 
     /**
@@ -839,6 +895,7 @@ class TequilaClient
         $this->killSession();
         // Redirect the user to the tequila server logout url
         header("Location: " . $this->getLogoutUrl($redirectUrl));
+        exit;
     }
 
     /**
@@ -847,7 +904,7 @@ class TequilaClient
      * @param array $fields Optional fields to include in the request.
      * @return string|false Returns the response from the Tequila service or false if the request failed.
      */
-    private function askTequila(string $requestType, array $fields = []): string|false
+    private function askTequila(string $requestType, array $fields = [])
     {
         // Initialize the cURL object to communicate with the Tequila service
         $ch = curl_init();
@@ -903,6 +960,10 @@ class TequilaClient
 
         $response = curl_exec($ch);
 
+        if ($requestType === 'fetchattributes' && $response) {
+            return $this->parseAttributesFromResponse($response);
+        }
+
         // If the connection failed (HTTP code 200 <=> OK)
         if (curl_getinfo($ch, CURLINFO_HTTP_CODE) != '200') {
             $response = false;
@@ -910,5 +971,29 @@ class TequilaClient
 
         curl_close($ch);
         return $response;
+    }
+
+    /**
+     * Parse the attributes from the Tequila service response.
+     * @param string $response The response from the Tequila service.
+     * @return array The parsed attributes.
+     */
+    private function parseAttributesFromResponse(string $response): array
+    {
+        $result = [];
+        $attributes = explode("\n", $response);
+
+        // Saving returned attributes
+        foreach ($attributes as $attribute) {
+            $attribute = trim($attribute);
+            if (!$attribute) continue;
+            $splitAttribute = explode('=', $attribute, 2);
+            // Handle the case when the attribute is not properly split
+            if (count($splitAttribute) !== 2) continue;
+            [$key, $value] = $splitAttribute;
+            $result[$key] = $value;
+        }
+
+        return $result;
     }
 }

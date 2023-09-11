@@ -11,8 +11,8 @@ use mysqli_result;
 
 class LikeModel extends DatabaseModel
 {
-    private const TABLE_LIKES_QUESTIONS = 'likes_questions';
-    private const TABLE_LIKES_ANSWERS = 'likes_answers';
+    private const TABLE_LIKES_QUESTIONS = '{{likes_questions}}';
+    private const TABLE_LIKES_ANSWERS = '{{likes_answers}}';
     private const COL_ID_QUESTION = 'id_question';
     private const COL_ID_ANSWER = 'id_answer';
     private string $table;

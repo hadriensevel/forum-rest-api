@@ -13,65 +13,51 @@ use Exception;
 class LikeController extends BaseController
 {
     /**
-     * Add a like to a question
-     * @param int $questionId
+     * Add a like to a question.
+     * @param int $questionId The ID of the question to be liked.
+     * @param int $sciper The ID of the user liking the question.
      * @return void
      * @throws Exception
      */
-    public function addLikeToQuestion(int $questionId): void
+    public function addLikeToQuestion(int $questionId, int $sciper): void
     {
         $likeModel = new LikeModel();
 
-        // Get the sciper of the user who is logged in
-        $userId = getSciper();
-
-        // Check if the user has already liked the question
-        if ($likeModel->checkLike($userId, $questionId)) {
+        if ($likeModel->checkLike($sciper, $questionId)) {
             $this->sendOutput(
                 'HTTP/1.1 400 Bad Request',
-                array('message' => 'User has already liked this question')
+                ['message' => 'User has already liked this question']
             );
             return;
         }
 
-        // Add the like
-        $affectedRows = $likeModel->addLike($userId, $questionId);
-
-        if ($affectedRows === 0) {
-            $this->sendOutput(
-                'HTTP/1.1 400 Bad Request',
-                array('message' => 'Wrong question ID or user ID')
-            );
+        if ($likeModel->addLike($sciper, $questionId)) {
+            $this->sendOutput('HTTP/1.1 200 OK');
         } else {
             $this->sendOutput(
-                'HTTP/1.1 200 OK',
+                'HTTP/1.1 400 Bad Request',
+                ['message' => 'Wrong question ID or user ID']
             );
         }
     }
 
     /**
-     * Delete a like from a question
-     * @param int $questionId
+     * Delete a like from a question.
+     * @param int $questionId The ID of the question.
+     * @param int $sciper The ID of the user removing the like.
      * @return void
      * @throws Exception
      */
-    public function deleteLikeFromQuestion(int $questionId): void
+    public function deleteLikeFromQuestion(int $questionId, int $sciper): void
     {
         $likeModel = new LikeModel();
 
-        // Get the sciper of the user who is logged in
-        $userId = getSciper();
-
-        $affectedRows = $likeModel->deleteLike($userId, $questionId);
-
-        if ($affectedRows === 0) {
-            $this->sendOutput(
-                'HTTP/1.1 400 Bad Request',
-                array('message' => 'Wrong question ID or user ID')
-            );
+        if ($likeModel->deleteLike($sciper, $questionId)) {
+            $this->sendOutput('HTTP/1.1 200 OK');
         } else {
             $this->sendOutput(
-                'HTTP/1.1 200 OK',
+                'HTTP/1.1 400 Bad Request',
+                ['message' => 'Wrong question ID or user ID']
             );
         }
     }

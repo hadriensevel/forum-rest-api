@@ -68,6 +68,25 @@ class DatabaseModel
     }
 
     /**
+     * Prepare a SQL query by replacing the table names with the correct prefix
+     * @param string $query
+     * @return string
+     */
+    function prepareQuery(string $query): string
+    {
+        $replacements = [
+            '{{questions}}' => DB_PREFIX . 'questions',
+            '{{answers}}' => DB_PREFIX . 'answers',
+            '{{likes_questions}}' => DB_PREFIX . 'likes_questions',
+            '{{likes_answers}}' => DB_PREFIX . 'likes_answers',
+            '{{users}}' => DB_PREFIX . 'users',
+            '{{feature_flags}}' => DB_PREFIX . 'feature_flags'
+        ];
+
+        return str_replace(array_keys($replacements), array_values($replacements), $query);
+    }
+
+    /**
      * Prepare, execute and return the result of a SQL statement
      * @param string $query
      * @param array $params
@@ -78,6 +97,7 @@ class DatabaseModel
     public function createAndRunPreparedStatement(string $query, array $params = array(),
                                                   bool   $returnAffectedRows = false): false|mysqli_result|int
     {
+        $query = $this->prepareQuery($query);
         $statement = $this->executeStatement($query, $params);
         $result = $statement->get_result();
         if ($returnAffectedRows) {

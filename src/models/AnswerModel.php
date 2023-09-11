@@ -19,10 +19,10 @@ class AnswerModel extends DatabaseModel
      */
     public function getQuestionAnswers(int $idQuestion): false|mysqli_result
     {
-        $query = "SELECT id, date, body, users.role, id_parent_question as id_question, accepted
-        FROM answers 
-        LEFT JOIN users
-        ON answers.id_user = users.sciper 
+        $query = "SELECT id, date, body, {{users}}.role, id_parent_question as id_question, accepted
+        FROM {{answers}} 
+        LEFT JOIN {{users}}
+        ON {{answers}}.id_user = {{users}}.sciper 
         WHERE id_parent_question = ?
         ORDER BY answer_date DESC";
         $params = array($idQuestion);
@@ -38,9 +38,9 @@ class AnswerModel extends DatabaseModel
     /*public function getChildrenAnswers(int $idParentAnswer): false|mysqli_result
     {
         $query = "SELECT id, answer_date, users.name, id_parent_question, id_parent_answer, answer, accepted_answer, anonymous 
-        FROM answers 
-        LEFT JOIN users
-        ON answers.id_user = users.sciper 
+        FROM {{answers}}
+        LEFT JOIN {{users}}
+        ON {{answers}}.id_user = {{users}}.sciper
         WHERE id_parent_answer = ?
         ORDER BY answer_date DESC";
         $params = array($idParentAnswer);
@@ -57,7 +57,7 @@ class AnswerModel extends DatabaseModel
      */
     public function addAnswer(string $answer, int $userId, int $parentQuestionId): int
     {
-        $query = "INSERT INTO answers (body, id_user, id_parent_question) VALUES (?, ?, ?)";
+        $query = "INSERT INTO {{answers}} (body, id_user, id_parent_question) VALUES (?, ?, ?)";
         $params = array($answer, $userId, $parentQuestionId);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }

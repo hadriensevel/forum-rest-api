@@ -13,16 +13,36 @@ use Exception;
 class UserController extends BaseController
 {
     /**
-     * Check if the user is in the database
+     * Get the user information.
      * @param int $sciper
-     * @return bool
+     * @param string $name
+     * @param string $email
+     * @param bool $enforceInDatabase
+     * @return array
      * @throws Exception
      */
-    public function checkUser(int $sciper): bool
+    public function getUserDetails(int $sciper, string $name, string $email, bool $enforceInDatabase): array
     {
         $userModel = new UserModel();
-        $response = $userModel->getUser($sciper);
-        return $response->fetch_assoc()['sciper'] ?? false;
+        $userDetails = $userModel->getUser($sciper)->fetch_assoc();
+
+        $defaultDetails = [
+            'sciper' => $sciper,
+            'role' => 'student',
+            'is_admin' => false
+        ];
+
+        if (empty($userDetails) && $enforceInDatabase) {
+            $this->addUser($sciper, $name, $email);
+            return $defaultDetails;
+        }
+
+        $userDetails = $userDetails ?? $defaultDetails;
+
+        // Add the name to the data that will be returned
+        $userDetails['name'] = $name;
+
+        return $userDetails;
     }
 
     /**
@@ -37,31 +57,5 @@ class UserController extends BaseController
     {
         $userModel = new UserModel();
         $userModel->addUser($sciper, $name, $email);
-    }
-
-    /**
-     * Get the user information
-     * @param int $sciper
-     * @return array
-     * @throws Exception
-     */
-    public function getUserDetails(int $sciper): array
-    {
-        $userModel = new UserModel();
-        $response = $userModel->getUser($sciper);
-        return $response->fetch_assoc();
-    }
-
-    /**
-     * Check if the user is an admin
-     * @param int $sciper
-     * @return bool
-     * @throws Exception
-     */
-    public function isUserAdmin(int $sciper): bool
-    {
-        $userModel = new UserModel();
-        $response = $userModel->getUser($sciper);
-        return $response->fetch_assoc()['is_admin'];
     }
 }

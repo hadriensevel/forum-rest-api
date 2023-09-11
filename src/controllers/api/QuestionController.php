@@ -8,31 +8,27 @@
 namespace Controller\Api;
 
 use Model\QuestionModel;
+use Users\UserPermissions;
 use Exception;
 
 class QuestionController extends BaseController
 {
     /**
-     * Get the number of questions for a page, or a page with a div id
+     * Get the number of questions for a page, or a page with a div id.
      * @param string $pageId The ID of the page.
-     * @param string $divId The ID of the notes division (optional).
+     * @param string|null $divId The ID of the notes division (optional).
      * @return void
      * @throws Exception
      */
-    public function getQuestionsCountForPage(string $pageId, string $divId = ''): void
+    public function getQuestionsCountForPage(string $pageId, ?string $divId = null): void
     {
         $questionModel = new QuestionModel();
 
         // Fetch the number of questions from the database
-        $result = $questionModel->getQuestionsCount($pageId, $divId);
+        $data = $questionModel->getQuestionsCount($pageId, $divId)->fetch_assoc();
+        $questionsCount = $data['questions_count'] ?? 0;
 
-        $data = $result->fetch_assoc();
-        $response = isset($data['questions_count']) ? (int)$data['questions_count'] : 0;
-
-        $this->sendOutput(
-            'HTTP/1.1 200 OK',
-            array('questions_count' => $response)
-        );
+        $this->sendOutput('HTTP/1.1 200 OK', ['questions_count' => (int)$questionsCount]);
     }
 
     /**
@@ -40,27 +36,26 @@ class QuestionController extends BaseController
      * @param string $pageId The ID of the page.
      * @throws Exception
      */
-    public function getDivQuestionCount(string $pageId): void {
+    public function getDivQuestionCount(string $pageId): void
+    {
         $questionModel = new QuestionModel();
 
         // Fetch the count of questions for each divId
         $result = $questionModel->getQuestionCountByDivId($pageId);
 
-        $data = [];
-        while ($row = $result->fetch_assoc()) {
-            $data[] = [
+        // Fetch all rows directly and transform into the desired format
+        $data = array_map(function ($row) {
+            return [
                 'div_id' => $row['id_notes_div'],
                 'questions_count' => (int) $row['questions_count']
             ];
-        }
+        }, $result->fetch_all(MYSQLI_ASSOC));
 
-        $this->sendOutput(
-            'HTTP/1.1 200 OK',
-            $data
-        );
+        $this->sendOutput('HTTP/1.1 200 OK', $data);
     }
 
-/**
+
+    /**
      * Get the list of questions for a page, or a page with a div id
      * @param string $pageId The ID of the page.
      * @param string|null $divId The ID of the notes div (optional).
@@ -70,233 +65,173 @@ class QuestionController extends BaseController
     public function fetchQuestionsByPage(string $pageId, ?string $divId = null): void
     {
         $questionModel = new QuestionModel();
-
         $result = $questionModel->getQuestionsByPage($pageId, $divId);
 
-        $questions = [];
-        while ($row = $result->fetch_assoc()) {
-            $questions[] = $row;
-        }
+        // Fetch all rows directly into an array
+        $questions = $result->fetch_all(MYSQLI_ASSOC);
 
-        $this->sendOutput(
-            'HTTP/1.1 200 OK',
-            array('questions' => $questions)
-        );
+        $this->sendOutput('HTTP/1.1 200 OK', ['questions' => $questions]);
     }
 
     /**
      * Get a question by its ID along with all its associated answers.
      * @param int $questionId The ID of the question.
+     * @param int|null $sciper
      * @return void
      * @throws Exception
      */
-    public function fetchQuestion(int $questionId): void
+    public function fetchQuestion(int $questionId, ?int $sciper): void
     {
-        $strErrorDesc = $strErrorHeader = '';
-
         // Create an instance of the model
         $questionModel = new QuestionModel();
 
-        // Get the sciper of the user who is logged in
-        $userId = getSciper();
-
         // Fetch question and its answers from the model
-        $response = $questionModel->getQuestionWithAnswers($questionId, $userId);
+        $response = $questionModel->getQuestionWithAnswers($questionId, $sciper);
 
         // Check if there's any data
         if (!$response) {
-            $strErrorDesc = 'Invalid question ID';
-            $strErrorHeader = 'HTTP/1.1 400 Bad Request';
+            $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Invalid question ID']);
+            return;
         }
 
-        // Send the appropriate response
-        if (!$strErrorDesc) {
-            $this->sendOutput(
-                'HTTP/1.1 200 OK',
-                $response
-            );
-        } else {
-            $this->sendOutput(
-                $strErrorHeader,
-                array('error' => $strErrorDesc)
-            );
-        }
+        $this->sendOutput('HTTP/1.1 200 OK', $response);
     }
 
     /**
      * Create a new question
+     * @param int $sciper
      * @return void
      * @throws Exception
      */
-    public function create(): void
+    public function create(int $sciper): void
     {
-        $strErrorDesc = $strErrorHeader = '';
-
-        // Get the sciper of the user who is logged in
-        $userId = getSciper();
-
         // Check Content-Type
-        if (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') === false) {
-            $strErrorDesc = 'Content-Type must be multipart/form-data';
-            $strErrorHeader = 'HTTP/1.1 400 Bad Request';
-        } else {
-            // Read the raw POST data
-            $postData = $_POST;
-
-            // Get the image if there is one
-            $imageName = null;
-
-            // TODO: check image type and size before saving it
-            // If there is an image, give it a random name and move it to the uploads folder
-            if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-                $imageName = uniqid() . '.' . pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-                move_uploaded_file($_FILES['image']['tmp_name'], __DIR__ . '/../../../public/uploads/' . $imageName);
-            }
-
-            // Check if the required fields are present
-            if (isset($postData['question-title']) &&
-                isset($postData['question-body']) &&
-                isset($postData['question-location']) &&
-                isset($postData['page']) &&
-                isset($userId)) {
-
-                // Escape HTML in the title and body
-                $postData['question-title'] = htmlspecialchars($postData['question-title']);
-                $postData['question-body'] = htmlspecialchars($postData['question-body']);
-
-                // If div id is "undefined", set it to null
-                if ($postData['div-id'] === 'undefined') {
-                    $postData['div-id'] = null;
-                }
-
-                // Create a new question model
-                $questionModel = new QuestionModel();
-
-                // Save the new question to the database
-                $affectedRows = $questionModel->addQuestion(
-                    $postData['question-title'],
-                    $postData['question-body'],
-                    $imageName,
-                    $userId,
-                    $postData['page'],
-                    $postData['div-id'],
-                    $postData['question-location'],
-                );
-
-                // Check if the question has been saved
-                if ($affectedRows === 0) {
-                    $strErrorDesc = 'Error while saving the question (check the request body)';
-                    $strErrorHeader = 'HTTP/1.1 400 Bad Request';
-                }
-
-            } else {
-                $strErrorDesc = 'Missing required fields';
-                $strErrorHeader = 'HTTP/1.1 400 Bad Request';
-            }
+        if (!isset($_SERVER['CONTENT_TYPE']) || !str_contains($_SERVER['CONTENT_TYPE'], 'multipart/form-data')) {
+            $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Content-Type must be multipart/form-data']);
+            return;
         }
 
-        if (!$strErrorDesc) {
-            $this->sendOutput(
-                'HTTP/1.1 200 OK',
-            );
-        } else {
-            $this->sendOutput(
-                $strErrorHeader,
-                array('error' => $strErrorDesc)
-            );
+        $postData = $_POST;
+
+        $imageName = $this->handleImageUpload();
+
+        // Check required fields
+        if (!isset($postData['question-title'], $postData['question-body'], $postData['question-location'], $postData['page'])) {
+            $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Missing required fields']);
+            return;
         }
+
+        $postData['question-title'] = htmlspecialchars($postData['question-title']);
+        $postData['question-body'] = htmlspecialchars($postData['question-body']);
+
+        if ($postData['div-id'] === 'undefined') {
+            $postData['div-id'] = null;
+        }
+
+        $questionModel = new QuestionModel();
+        $affectedRows = $questionModel->addQuestion(
+            $postData['question-title'],
+            $postData['question-body'],
+            $imageName,
+            $sciper,
+            $postData['page'],
+            $postData['div-id'],
+            $postData['question-location']
+        );
+
+        if ($affectedRows === 0) {
+            $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Error while saving the question']);
+            return;
+        }
+
+        $this->sendOutput('HTTP/1.1 200 OK');
+    }
+
+    /**
+     * Handle the image upload and return its name if successful
+     * @return string|null
+     */
+    private function handleImageUpload(): ?string
+    {
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            $imageName = uniqid() . '.' . pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+            move_uploaded_file($_FILES['image']['tmp_name'], __DIR__ . '/../../../public/uploads/' . $imageName);
+            return $imageName;
+        }
+        return null;
     }
 
     /**
      * Edit a question
      * @param int $id
+     * @param array $user
      * @return void
      * @throws Exception
      */
-    public function edit(int $id): void
+    public function edit(int $id, array $user): void
     {
-        $strErrorDesc = $strErrorHeader = '';
-
-        // Get the sciper of the user who is logged in
-        $userId = getSciper();
-
         // Check Content-Type
-        if (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') === false) {
-            $strErrorDesc = 'Content-Type must be multipart/form-data';
-            $strErrorHeader = 'HTTP/1.1 400 Bad Request';
-        } else {
-            // Read the raw POST data
-            $postData = $_POST;
-
-            // Check if the required fields are present
-            if (isset($postData['question-title']) &&
-                isset($postData['question-body']) &&
-                isset($userId)) {
-
-                // Escape HTML in the title and body
-                $postData['question-title'] = htmlspecialchars($postData['question-title']);
-                $postData['question-body'] = htmlspecialchars($postData['question-body']);
-
-                // Create a new question model
-                $questionModel = new QuestionModel();
-
-                // Save the new question to the database
-                $affectedRows = $questionModel->editQuestion(
-                    $id,
-                    $postData['question-title'],
-                    $postData['question-body'],
-                );
-
-                // Check if the question has been saved
-                if ($affectedRows === 0) {
-                    $strErrorDesc = 'Error while saving the question (check the request body)';
-                    $strErrorHeader = 'HTTP/1.1 400 Bad Request';
-                }
-
-            } else {
-                $strErrorDesc = 'Missing required fields';
-                $strErrorHeader = 'HTTP/1.1 400 Bad Request';
-            }
+        if (!isset($_SERVER['CONTENT_TYPE']) || !str_contains($_SERVER['CONTENT_TYPE'], 'multipart/form-data')) {
+            $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Content-Type must be multipart/form-data']);
+            return;
         }
-        if (!$strErrorDesc) {
-            $this->sendOutput(
-                'HTTP/1.1 200 OK',
-            );
-        } else {
-            $this->sendOutput(
-                $strErrorHeader,
-                array('error' => $strErrorDesc)
-            );
+
+        $postData = $_POST;
+        // Check required fields
+        if (!isset($postData['question-title']) || !isset($postData['question-body'])) {
+            $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Missing required fields']);
+            return;
         }
+
+        $questionModel = new QuestionModel();
+        $userIsAuthor = $this->getAuthor($id) === $user['sciper'];
+
+        // Authorization check
+        if (!UserPermissions::canEditQuestion($user['role'], $user['is_admin'], $userIsAuthor)) {
+            $this->sendOutput('HTTP/1.1 403 Forbidden', ['error' => 'The user is not authorized to edit this question']);
+            return;
+        }
+
+        $postData['question-title'] = htmlspecialchars($postData['question-title']);
+        $postData['question-body'] = htmlspecialchars($postData['question-body']);
+        $affectedRows = $questionModel->editQuestion($id, $postData['question-title'], $postData['question-body']);
+
+        if ($affectedRows === 0) {
+            $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Error while saving the question']);
+            return;
+        }
+
+        $this->sendOutput('HTTP/1.1 200 OK');
     }
 
     /**
-     * Delete a question
-     * @param int $id
+     * Delete a question.
+     * @param int $id The ID of the question to be deleted.
+     * @param array $user
      * @return void
      * @throws Exception
      */
-    public function delete(int $id): void
+    public function delete(int $id, array $user): void
     {
-        $strErrorDesc = $strErrorHeader = '';
-
         $questionModel = new QuestionModel();
-        if (!$questionModel->deleteQuestion($id)) {
-            $strErrorDesc = 'Invalid question ID';
-            $strErrorHeader = 'HTTP/1.1 400 Bad Request';
+        $userIsAuthor = $this->getAuthor($id) === $user['sciper'];
+
+        // Authorization check
+        if (!UserPermissions::canDeleteQuestion($user['role'], $user['is_admin'], $userIsAuthor)) {
+            $this->sendOutput('HTTP/1.1 403 Forbidden', ['error' => 'The user is not authorized to delete this question']);
+            return;
         }
 
-        if (!$strErrorDesc) {
-            $this->sendOutput(
-                'HTTP/1.1 200 OK'
-            );
+        if ($questionModel->deleteQuestion($id)) {
+            $this->sendOutput('HTTP/1.1 200 OK');
         } else {
             $this->sendOutput(
-                $strErrorHeader,
-                array('error' => $strErrorDesc)
+                'HTTP/1.1 400 Bad Request',
+                ['error' => 'Invalid question ID']
             );
         }
     }
+
 
     /**
      * Get the author of a question

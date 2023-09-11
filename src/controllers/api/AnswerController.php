@@ -40,57 +40,35 @@ class AnswerController extends BaseController
 
     /**
      * Add an answer to a question.
+     * @param int $sciper
      * @return void
      * @throws Exception
      */
-    public function addAnswerToQuestion(): void
+    public function addAnswerToQuestion(int $sciper): void
     {
-        $strErrorDesc = $strErrorHeader = '';
-
-        // Get the sciper of the user who is logged in
-        $userId = getSciper();
-
-        if (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') === false) {
-            $strErrorDesc = 'Content-Type must be multipart/form-data';
-            $strErrorHeader = 'HTTP/1.1 400 Bad Request';
-        } else {
-            // Read the raw POST data
-            $postData = $_POST;
-
-            // Check if the required fields are present
-            if (isset($postData['answer-body']) &&
-                isset($userId) &&
-                isset($postData['question-id'])) {
-
-                // Escape HTML in the body
-                $postData['answer-body'] = htmlspecialchars($postData['answer-body']);
-
-                // Create an instance of the model
-                $answerModel = new AnswerModel();
-
-                // Add the answer to the database
-                $affectedRows = $answerModel->addAnswer($postData['answer-body'], $userId, $postData['question-id']);
-
-                // Check if the answer was added
-                if ($affectedRows === 0) {
-                    $strErrorDesc = 'Wrong question ID or user ID';
-                    $strErrorHeader = 'HTTP/1.1 400 Bad Request';
-                }
-            } else {
-                $strErrorDesc = 'Missing required fields';
-                $strErrorHeader = 'HTTP/1.1 400 Bad Request';
-            }
+        if (!isset($_SERVER['CONTENT_TYPE']) || !str_contains($_SERVER['CONTENT_TYPE'], 'multipart/form-data')) {
+            $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Content-Type must be multipart/form-data']);
+            return;
         }
 
-        if (!$strErrorDesc) {
-            $this->sendOutput(
-                'HTTP/1.1 200 OK',
-            );
-        } else {
-            $this->sendOutput(
-                $strErrorHeader,
-                array('error' => $strErrorDesc)
-            );
+        $postData = $_POST;
+
+        if (!isset($postData['answer-body']) || !isset($postData['question-id'])) {
+            $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Missing required fields']);
+            return;
         }
+
+        // Escape HTML in the body
+        $answerBody = htmlspecialchars($postData['answer-body']);
+        $questionId = $postData['question-id'];
+
+        $answerModel = new AnswerModel();
+
+        if ($answerModel->addAnswer($answerBody, $sciper, $questionId) === 0) {
+            $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Wrong question ID or user ID']);
+            return;
+        }
+
+        $this->sendOutput('HTTP/1.1 200 OK');
     }
 }

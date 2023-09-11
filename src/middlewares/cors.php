@@ -15,8 +15,9 @@ function setCorsHeaders(): void
 
     if (in_array($origin, ALLOWED_ORIGINS)) {
         header("Access-Control-Allow-Origin: $origin");
-        header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
+        header("Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE");
         header("Access-Control-Allow-Headers: Content-Type, Authorization");
+        header("Access-Control-Allow-Credentials: true");
         header("Access-Control-Max-Age: 86400"); // 24 hours
     } else {
         header('HTTP/1.1 403 Forbidden');

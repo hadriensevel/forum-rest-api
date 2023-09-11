@@ -1,6 +1,7 @@
 {
   "require": {
     "phpmailer/phpmailer": "^6.8",
+    "firebase/php-jwt": "^6.8",
     "ext-mysqli": "*",
     "ext-curl": "*",
     "ext-fileinfo": "*"
@@ -10,13 +11,15 @@
       "src/controllers",
       "src/models",
       "src/mailer",
-      "src/users"
+      "src/users",
+      "src/exceptions"
     ],
     "files": [
       "config/config.php",
+      "src/utils/session.php",
       "src/router/router.php",
-      "src/middlewares/authentication.php",
       "src/middlewares/cors.php",
+      "src/middlewares/authentication.php",
       "src/utils/error.php",
       "src/utils/serve-file.php"
     ]

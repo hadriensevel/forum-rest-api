@@ -5,7 +5,7 @@
  * File: UserPermissions.php
  */
 
-namespace users;
+namespace Users;
 
 class UserPermissions
 {

@@ -16,14 +16,14 @@ class QuestionModel extends DatabaseModel
      * MySQL query to get the number of questions for a page in the lecture notes or exercises
      * or for an id in the lecture notes if specified
      * @param string $pageId The ID of the page.
-     * @param string $divId The ID of the notes division (optional).
+     * @param string|null $divId The ID of the notes division (optional).
      * @return false|mysqli_result
      * @throws Exception
      */
-    public function getQuestionsCount(string $pageId, string $divId = ''): false|mysqli_result
+    public function getQuestionsCount(string $pageId, ?string $divId = ''): false|mysqli_result
     {
         $query = "SELECT COUNT(*) AS questions_count
-        FROM questions
+        FROM {{questions}}
         WHERE visible = true AND id_page = ?";
         $params = array($pageId);
         if ($divId != '') {
@@ -45,7 +45,7 @@ class QuestionModel extends DatabaseModel
         SELECT 
             id_notes_div,
             COUNT(*) AS questions_count
-        FROM questions
+        FROM {{questions}}
         WHERE id_page = ?
         GROUP BY id_notes_div";
 
@@ -66,36 +66,36 @@ class QuestionModel extends DatabaseModel
     {
         $query = "
         SELECT 
-            questions.id as id,
+            {{questions}}.id as id,
             date,
             title,
-            IF(COUNT(DISTINCT acceptedAnswers.id) > 0, TRUE, questions.resolved) AS resolved,
+            IF(COUNT(DISTINCT acceptedAnswers.id) > 0, TRUE, {{questions}}.resolved) AS resolved,
             IFNULL(l.likes, 0) AS likes,
             IFNULL(a.answers, 0) as answers,
             locked
-        FROM questions
+        FROM {{questions}}
         LEFT JOIN (
             SELECT id_question, COUNT(*) AS likes
-            FROM likes_questions
+            FROM {{likes_questions}}
             GROUP BY id_question
-        ) l ON questions.id = l.id_question
+        ) l ON {{questions}}.id = l.id_question
         LEFT JOIN (
             SELECT id_parent_question, COUNT(*) AS answers
-            FROM answers
+            FROM {{answers}}
             GROUP BY id_parent_question
-        ) a ON questions.id = a.id_parent_question
+        ) a ON {{questions}}.id = a.id_parent_question
         LEFT JOIN (
             SELECT id, id_parent_question
-            FROM answers
+            FROM {{answers}}
             WHERE accepted = true
-        ) acceptedAnswers ON questions.id = acceptedAnswers.id_parent_question
+        ) acceptedAnswers ON {{questions}}.id = acceptedAnswers.id_parent_question
         WHERE visible = true AND id_page = ?";
         $params = array($pageId);
         if ($divId != '') {
             $query .= " AND id_notes_div = ?";
             $params[] = $divId;
         }
-        $query .= " GROUP BY questions.id";
+        $query .= " GROUP BY {{questions}}.id";
 
         return $this->createAndRunPreparedStatement($query, $params);
     }
@@ -112,7 +112,7 @@ class QuestionModel extends DatabaseModel
         // Base query to fetch the main question details
         $questionQuery = "
         SELECT 
-            questions.id as id,
+            {{questions}}.id as id,
             date,
             title,
             body,
@@ -124,25 +124,25 @@ class QuestionModel extends DatabaseModel
         // Add user_liked part if userId is not null
         if ($userId !== null) {
             $questionQuery .= ",
-            CASE WHEN questions.id_user = ? THEN TRUE ELSE FALSE END AS user_is_author,
+            CASE WHEN {{questions}}.id_user = ? THEN TRUE ELSE FALSE END AS user_is_author,
             CASE WHEN user_likes.id_user IS NOT NULL THEN TRUE ELSE FALSE END AS user_liked";
         }
 
         $questionQuery .= "
-        FROM questions
+        FROM {{questions}}
         LEFT JOIN (
             SELECT id_question, COUNT(*) AS likes 
-            FROM likes_questions 
+            FROM {{likes_questions}} 
             GROUP BY id_question
-        ) l ON questions.id = l.id_question";
+        ) l ON {{questions}}.id = l.id_question";
 
         if ($userId !== null) {
             $questionQuery .= "
-        LEFT JOIN likes_questions AS user_likes
-        ON questions.id = user_likes.id_question AND user_likes.id_user = ?";
+        LEFT JOIN {{likes_questions}} AS user_likes
+        ON {{questions}}.id = user_likes.id_question AND user_likes.id_user = ?";
         }
 
-        $questionQuery .= " WHERE questions.id = ?";
+        $questionQuery .= " WHERE {{questions}}.id = ?";
 
         if ($userId) $questionParams = array($userId, $userId, $questionId);
         else $questionParams = array($questionId);
@@ -158,13 +158,13 @@ class QuestionModel extends DatabaseModel
         // Query to fetch the associated answers
         $answersQuery = "
         SELECT 
-            answers.id,
+            {{answers}}.id,
             date,
             body,
             accepted,
-            users.role as user_role
-        FROM answers
-        JOIN users ON answers.id_user = users.sciper
+            {{users}}.role as user_role
+        FROM {{answers}}
+        JOIN {{users}} ON {{answers}}.id_user = {{users}}.sciper
         WHERE id_parent_question = ?";
 
         $answersParams = array($questionId);
@@ -200,7 +200,7 @@ class QuestionModel extends DatabaseModel
      */
     public function addQuestion(string $title, string $body, ?string $image, int $sciper, string $page, ?string $divId, string $location): int
     {
-        $query = "INSERT INTO questions (title, body, image, id_user, id_page, id_notes_div, location) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $query = "INSERT INTO {{questions}} (title, body, image, id_user, id_page, id_notes_div, location) VALUES (?, ?, ?, ?, ?, ?, ?)";
         $params = array($title, $body, $image, $sciper, $page, $divId, $location);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }
@@ -215,7 +215,7 @@ class QuestionModel extends DatabaseModel
      */
     public function editQuestion(int $id, string $title, string $body): int
     {
-        $query = "UPDATE questions SET title = ?, body = ? WHERE id = ?";
+        $query = "UPDATE {{questions}} SET title = ?, body = ? WHERE id = ?";
         $params = array($title, $body, $id);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }
@@ -228,7 +228,7 @@ class QuestionModel extends DatabaseModel
      */
     public function deleteQuestion(int $id): int
     {
-        $query = "DELETE FROM questions WHERE id = ?";
+        $query = "DELETE FROM {{questions}} WHERE id = ?";
         $params = array($id);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }
@@ -241,7 +241,7 @@ class QuestionModel extends DatabaseModel
      */
     public function getQuestionAuthor(int $id): false|mysqli_result
     {
-        $query = "SELECT id_user FROM questions WHERE id = ?";
+        $query = "SELECT id_user FROM {{questions}} WHERE id = ?";
         $params = array($id);
         return $this->createAndRunPreparedStatement($query, $params);
     }
@@ -254,7 +254,7 @@ class QuestionModel extends DatabaseModel
      */
     public function lockQuestion(int $id): int
     {
-        $query = "UPDATE questions SET locked = true WHERE id = ?";
+        $query = "UPDATE {{questions}} SET locked = true WHERE id = ?";
         $params = array($id);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }

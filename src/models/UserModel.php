@@ -18,7 +18,7 @@ class UserModel extends DatabaseModel
      */
     public function getUser(int $sciper): false|mysqli_result
     {
-        $query = "SELECT * FROM users WHERE sciper = ?";
+        $query = "SELECT sciper, role, is_admin FROM {{users}} WHERE sciper = ?";
         $params = array($sciper);
         return $this->createAndRunPreparedStatement($query, $params);
     }
@@ -32,7 +32,7 @@ class UserModel extends DatabaseModel
      */
     public function addUser(int $sciper, string $name, string $email): int
     {
-        $query = "INSERT INTO users (sciper, name, email) VALUES (?, ?, ?)";
+        $query = "INSERT INTO {{users}} (sciper, name, email) VALUES (?, ?, ?)";
         $params = array($sciper, $name, $email);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }

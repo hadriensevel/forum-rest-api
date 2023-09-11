@@ -45,56 +45,56 @@ get(API_ROOT_URI . '/get-questions/$pageId/$divId', function ($pageId, $divId = 
 // Get a question by its ID
 get(API_ROOT_URI . '/question/get/$id', function ($id) {
     setCorsHeaders();
-    (new QuestionController())->fetchQuestion($id);
+    $user = getUserFromToken(false);
+    $sciper = $user ? $user['sciper'] : null;
+    (new QuestionController())->fetchQuestion($id, $sciper);
 });
 
 // Create a new question
 post(API_ROOT_URI . '/question/new', function () {
     setCorsHeaders();
-    //checkAuthentication();
-    (new QuestionController())->create();
+    $user = getUserFromToken();
+    (new QuestionController())->create($user['sciper']);
 });
 
 // Edit a question
 post(API_ROOT_URI . '/question/edit/$id', function ($id) {
     setCorsHeaders();
-    checkAuthentication();
-    (new QuestionController())->edit($id);
+    $user = getUserFromToken();
+    (new QuestionController())->edit($id, $user);
 });
 
-// Delete a question (only for admins)
+// Delete a question
 delete(API_ROOT_URI . '/question/delete/$id', function ($id) {
     setCorsHeaders();
-    checkAuthentication();
-    ensureAdmin();
-    (new QuestionController())->delete($id);
+    $user = getUserFromToken();
+    (new QuestionController())->delete($id, $user);
 });
 
 // Add an answer to a question
 post(API_ROOT_URI . '/answer/new', function () {
     setCorsHeaders();
-    checkAuthentication();
-    (new AnswerController())->addAnswerToQuestion();
+    $user = getUserFromToken();
+    (new AnswerController())->addAnswerToQuestion($user['sciper']);
 });
 
 // Serve the images from the public upload folder
 get(API_ROOT_URI . '/image/$filename', function ($filename) {
-    setCorsHeaders();
     serveFile('uploads/'. $filename);
 });
 
 // Add a like to a question
 post(API_ROOT_URI . '/like/add/$questionId', function ($questionId) {
     setCorsHeaders();
-    checkAuthentication();
-    (new LikeController())->addLikeToQuestion($questionId);
+    $user = getUserFromToken();
+    (new LikeController())->addLikeToQuestion($questionId, $user['sciper']);
 });
 
 // Remove a like from a question
 delete(API_ROOT_URI . '/like/remove/$questionId', function ($questionId) {
     setCorsHeaders();
-    checkAuthentication();
-    (new LikeController())->deleteLikeFromQuestion($questionId);
+    $user = getUserFromToken();
+    (new LikeController())->deleteLikeFromQuestion($questionId, $user['sciper']);
 });
 
 // Feature flags routes
@@ -105,22 +105,27 @@ get(API_ROOT_URI . '/feature-flags', function () {
 
 // Authentication routes
 get('/auth/login', function () {
-    setCorsHeaders();
     $redirectUrl = (isset($_GET['redirect']) && $_GET['redirect']) ? $_GET['redirect'] : '/';
-    authenticate('Analyse I S. Friedli');
+    $token = authenticate('Analyse I S. Friedli');
+    // Create the redirect URL with the token (depends on if the redirect URL already has a query string)
+    if (str_contains($redirectUrl, '?')) {
+        $redirectUrl .= '&token=' . $token;
+    } else {
+        $redirectUrl .= '?token=' . $token;
+    }
+
     header('Location: ' . $redirectUrl);
 });
 
 get('/auth/logout', function () {
-    setCorsHeaders();
-    $redirectUrl = (isset($_GET['redirect']) && $_GET['redirect']) ? $_GET['redirect'] : 'https://localhost';
+    $redirectUrl = (isset($_GET['redirect']) && $_GET['redirect']) ? $_GET['redirect'] : '';
     logout($redirectUrl);
 });
 
 get('/auth/details', function () {
     setCorsHeaders();
-    checkAuthentication();
-    getUserDetails();
+    $token = getTokenOrDie();
+    sendUserDetails($token);
 });
 
 // Admin routes
@@ -132,11 +137,17 @@ get('/auth/details', function () {
 //});
 
 // PHP info route
-get(API_ROOT_URI . '/php-info', function () {
-    checkAuthentication();
-    ensureAdmin();
-    phpinfo();
-});
+//get(API_ROOT_URI . '/php-info', function () {
+//    checkAuthentication();
+//    ensureAdmin();
+//    phpinfo();
+//});
+
+// Respond to preflights
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    setCorsHeaders();
+    exit();
+}
 
 // Bad request route
 any('/400', '400.php');

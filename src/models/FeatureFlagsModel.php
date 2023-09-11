@@ -18,7 +18,7 @@ class FeatureFlagsModel extends DatabaseModel
      */
     public function getFeatureFlags(): false|mysqli_result
     {
-        $query = "SELECT * FROM feature_flags";
+        $query = "SELECT * FROM {{feature_flags}}";
         return $this->createAndRunPreparedStatement($query);
     }
 

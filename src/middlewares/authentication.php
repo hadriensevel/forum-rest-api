@@ -5,58 +5,70 @@
  * File: authentication.php
  */
 
-require_once __DIR__ . '/../tequila/tequila.php';
+require_once __DIR__ . '/../tequila/tequila-jwt.php';
 
 use Controller\Api\UserController;
+use Exception\ExpiredToken;
+use Exception\InvalidToken;
+use Exception\ExpiredSession;
 
 /**
- * Check if the user is authenticated
- * @return void
- */
-function checkAuthentication(): void
-{
-    // Create an instance of the TequilaClient class
-    $tequila = new TequilaClient();
-
-    // Check if the user is authenticated
-    if (!$tequila->loadSession()) {
-        // If not, send an error response
-        sendUnauthorizedResponse();
-    }
-}
-
-/**
- * Authenticate with Tequila and store user information in the database if needed
+ * Authenticate with Tequila
  * @param string $appName Name to display on the Tequila login page.
- * @return void
- * @throws Exception
+ * @return string
  */
-function authenticate(string $appName): void
+function authenticate(string $appName): string
 {
     // Create an instance of the TequilaClient class
-    $tequila = new TequilaClient();
+    $tequila = new TequilaClientJWT();
 
     // Set Tequila parameters
     $tequila->setApplicationName($appName);
-    $tequila->setWantedAttributes(array(
-        'displayname',
-        'email',
-        'uniqueid'
-    ));
+    $tequila->setWantedAttributes(['displayname', 'email', 'uniqueid']);
     $tequila->setAllowsFilter('org=epfl');
 
     // Call the authenticate function
-    $tequila->authenticate();
+    return $tequila->authenticate();
+}
 
-    // Get the user information
-    $sciper = $tequila->getValue('uniqueid');
-    $name = $tequila->getValue('displayname');
-    $email = $tequila->getValue('email');
+/**
+ * Get the user information
+ * @param string $token JWT token of the user.
+ * @param bool $enforceInDatabase If true, the user must be in the database.
+ * @return array User information.
+ * @throws ExpiredSession|ExpiredToken|InvalidToken
+ * @throws Exception
+ */
+function getUserDetails(string $token, bool $enforceInDatabase = false): array
+{
+    $tequila = $tequila ?? new TequilaClientJWT();
+    $tequila->setWantedAttributes(['displayname', 'email', 'uniqueid']);
 
-    // Check if the user is in the database and add it if not
-    $userController = new UserController();
-    if (!$userController->checkUser($sciper)) {
-        $userController->addUser($sciper, $name, $email);
+    $userController = $userController ?? new UserController();
+
+    // Create an instance of the TequilaClient class
+    $attributes = $tequila->verifyTokenAndGetAttributes($token);
+    $sciper = $attributes['uniqueid'];
+    $displayName = $attributes['displayname'];
+    $email = $attributes['email'];
+
+    // Return the user information from the database
+    return $userController->getUserDetails($sciper, $displayName, $email, $enforceInDatabase);
+}
+
+/**
+ * Send the user details
+ * @param string $token JWT token of the user.
+ * @return void
+ * @throws Exception
+ */
+function sendUserDetails(string $token): void
+{
+    try {
+        $userDetails = getUserDetails($token);
+        sendSuccessResponse($userDetails);
+    } catch (ExpiredToken|InvalidToken|ExpiredSession $e) {
+        sendUnauthorizedResponse($e->getMessage());
     }
 }
 
@@ -68,78 +80,81 @@ function authenticate(string $appName): void
 function logout(string $redirectURL = ''): void
 {
     // Create an instance of the TequilaClient class
-    $tequila = new TequilaClient();
+    $tequila = new TequilaClientJWT();
 
     // Call the logout function
     $tequila->logout($redirectURL);
 }
 
 /**
- * Util function to get the user's unique ID if the user is authenticated
- * @return int|null
- */
-function getSciper(): ?int
-{
-    // Create an instance of the TequilaClient class
-    $tequila = new TequilaClient();
-
-    // Check if the user is authenticated
-    if (!$tequila->loadSession()) {
-        // If not, return null
-        return null;
-    }
-
-    // Return the user's unique ID
-    return $tequila->getValue('uniqueid');
-}
-
-
-/**
- * Get and send the user information
+ * Send a success response with the data
+ * @param array $data Data to send.
  * @return void
- * @throws Exception
  */
-function getUserDetails(): void
+function sendSuccessResponse(array $data): void
 {
-    // Create an instance of the UserController class
-    $userController = new UserController();
-
-    // Get the user information from the database
-    $userDetails = $userController->getUserDetails($_SESSION['uniqueid']);
-
-    // Send the user information
     header('HTTP/1.1 200 OK');
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode($userDetails);
-}
-
-/**
- * Check if the user is an admin
- * @return void
- * @throws Exception
- */
-function ensureAdmin(): void
-{
-    // Create an instance of the UserController class
-    $userController = new UserController();
-
-    // If the user is not an admin, send an error response
-    if (!$userController->isUserAdmin($_SESSION['uniqueid'])) {
-        // If not, send an error response
-        sendUnauthorizedResponse();
-    }
+    echo json_encode($data);
 }
 
 /**
  * Send an unauthorized response
+ * @param string $message Message to send.
  * @return void
  */
-function sendUnauthorizedResponse(): void
+function sendUnauthorizedResponse(string $message = 'Unauthorized'): void
 {
-    // If not, send an error response
     header('HTTP/1.1 401 Unauthorized');
     header('Content-Type: application/json; charset=utf-8');
-    exit(json_encode(array(
-        'error' => 'Unauthorized'
-    )));
+    echo json_encode(['error' => $message]);
+}
+
+/**
+ * Extract the token from the Authorization header
+ * @return string|null
+ * @throws Exception if the token is not present or is malformed.
+ */
+function getTokenFromHeader(): ?string
+{
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? null;
+
+    if ($authHeader && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+        return $matches[1];
+    }
+
+    throw new Exception('No token provided or token is malformed.');
+}
+
+/**
+ * Get the token from the Authorization header or die
+ * @return string
+ */
+function getTokenOrDie(): string
+{
+    try {
+        return getTokenFromHeader();
+    } catch (Exception $e) {
+        sendUnauthorizedResponse($e->getMessage());
+        exit();
+    }
+}
+
+/**
+ * Return user information from the token
+ * @param bool $enforceToken
+ * @return array|null
+ * @throws ExpiredSession|ExpiredToken|InvalidToken
+ */
+function getUserFromToken(bool $enforceToken = true): ?array
+{
+    if ($enforceToken) {
+        $token = getTokenOrDie();
+        return getUserDetails($token, true);
+    } else try {
+        $token = getTokenFromHeader();
+        return getUserDetails($token);
+    } catch (Exception) {
+        return null;
+    }
 }

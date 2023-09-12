@@ -1,5 +1,8 @@
 <?php
 
+// Domain configuration
+const DOMAIN = '';
+
 // API configuration
 const API_NAME = '';
 const API_ROOT_URI = '';

@@ -3,7 +3,6 @@
  * Copyright (c) 2023. Hadrien Sevel
  * Project: forum-rest-api
  * File: tequila.php
- * Based on Tequila PHP client v. 3.0.5
  */
 
 /*========================================================================

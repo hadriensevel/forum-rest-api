@@ -17,7 +17,7 @@ class QuestionController extends BaseController
      * Get the number of questions for a page, or a page with a div id.
      * @param string $pageId The ID of the page.
      * @param string|null $divId The ID of the notes division (optional).
-     * @return void
+     * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
     public function getQuestionsCountForPage(string $pageId, ?string $divId = null): void
@@ -34,6 +34,7 @@ class QuestionController extends BaseController
     /**
      * Get the count of questions for each divId associated with the given pageId.
      * @param string $pageId The ID of the page.
+     * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
     public function getDivQuestionCount(string $pageId): void
@@ -47,7 +48,7 @@ class QuestionController extends BaseController
         $data = array_map(function ($row) {
             return [
                 'div_id' => $row['id_notes_div'],
-                'questions_count' => (int) $row['questions_count']
+                'questions_count' => (int)$row['questions_count']
             ];
         }, $result->fetch_all(MYSQLI_ASSOC));
 
@@ -59,7 +60,7 @@ class QuestionController extends BaseController
      * Get the list of questions for a page, or a page with a div id
      * @param string $pageId The ID of the page.
      * @param string|null $divId The ID of the notes div (optional).
-     * @return void
+     * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
     public function fetchQuestionsByPage(string $pageId, ?string $divId = null): void
@@ -70,14 +71,20 @@ class QuestionController extends BaseController
         // Fetch all rows directly into an array
         $questions = $result->fetch_all(MYSQLI_ASSOC);
 
+        // Generate the preview for each question and remove the body
+        foreach ($questions as &$question) {
+            $question['preview'] = generatePreview($question['body']);
+            unset($question['body']);
+        }
+
         $this->sendOutput('HTTP/1.1 200 OK', ['questions' => $questions]);
     }
 
     /**
      * Get a question by its ID along with all its associated answers.
      * @param int $questionId The ID of the question.
-     * @param int|null $sciper
-     * @return void
+     * @param int|null $sciper The ID of the user requesting the question (optional).
+     * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
     public function fetchQuestion(int $questionId, ?int $sciper): void
@@ -98,9 +105,9 @@ class QuestionController extends BaseController
     }
 
     /**
-     * Create a new question
-     * @param int $sciper
-     * @return void
+     * Create a new question.
+     * @param int $sciper The ID of the user creating the question.
+     * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
     public function create(int $sciper): void
@@ -113,16 +120,18 @@ class QuestionController extends BaseController
 
         $postData = $_POST;
 
-        $imageName = $this->handleImageUpload();
+        $imageName = handleImageUpload();
 
         // Check required fields
-        if (!isset($postData['question-title'], $postData['question-body'], $postData['question-location'], $postData['page'])) {
+        if (!isset($postData['question-body'], $postData['question-location'], $postData['page'])) {
             $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Missing required fields']);
             return;
         }
 
-        $postData['question-title'] = htmlspecialchars($postData['question-title']);
-        $postData['question-body'] = htmlspecialchars($postData['question-body']);
+        // Check if the question title is set
+        if (!isset($postData['question-title'])) {
+            $postData['question-title'] = null;
+        }
 
         if ($postData['div-id'] === 'undefined') {
             $postData['div-id'] = null;
@@ -148,24 +157,10 @@ class QuestionController extends BaseController
     }
 
     /**
-     * Handle the image upload and return its name if successful
-     * @return string|null
-     */
-    private function handleImageUpload(): ?string
-    {
-        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-            $imageName = uniqid() . '.' . pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-            move_uploaded_file($_FILES['image']['tmp_name'], __DIR__ . '/../../../public/uploads/' . $imageName);
-            return $imageName;
-        }
-        return null;
-    }
-
-    /**
-     * Edit a question
-     * @param int $id
-     * @param array $user
-     * @return void
+     * Edit a question.
+     * @param int $id The ID of the question to be edited.
+     * @param array $user The details of the user editing the question.
+     * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
     public function edit(int $id, array $user): void
@@ -178,7 +173,7 @@ class QuestionController extends BaseController
 
         $postData = $_POST;
         // Check required fields
-        if (!isset($postData['question-title']) || !isset($postData['question-body'])) {
+        if (!isset($postData['question-body'])) {
             $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Missing required fields']);
             return;
         }
@@ -192,8 +187,10 @@ class QuestionController extends BaseController
             return;
         }
 
-        $postData['question-title'] = htmlspecialchars($postData['question-title']);
-        $postData['question-body'] = htmlspecialchars($postData['question-body']);
+        if (!isset($postData['question-title'])) {
+            $postData['question-title'] = null;
+        }
+
         $affectedRows = $questionModel->editQuestion($id, $postData['question-title'], $postData['question-body']);
 
         if ($affectedRows === 0) {
@@ -207,8 +204,8 @@ class QuestionController extends BaseController
     /**
      * Delete a question.
      * @param int $id The ID of the question to be deleted.
-     * @param array $user
-     * @return void
+     * @param array $user The details of the user deleting the question.
+     * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
     public function delete(int $id, array $user): void
@@ -222,6 +219,12 @@ class QuestionController extends BaseController
             return;
         }
 
+        // Check if there's an image associated with the question
+        $imageName = $questionModel->getQuestionImage($id)->fetch_assoc()['image'];
+        if ($imageName) {
+            deleteImage($imageName);
+        }
+
         if ($questionModel->deleteQuestion($id)) {
             $this->sendOutput('HTTP/1.1 200 OK');
         } else {
@@ -232,11 +235,10 @@ class QuestionController extends BaseController
         }
     }
 
-
     /**
-     * Get the author of a question
-     * @param int $id
-     * @return int
+     * Get the author of a question.
+     * @param int $id The ID of the question.
+     * @return int The sciper of the author.
      * @throws Exception
      */
     public function getAuthor(int $id): int
@@ -244,5 +246,33 @@ class QuestionController extends BaseController
         $questionModel = new QuestionModel();
         $response = $questionModel->getQuestionAuthor($id);
         return $response->fetch_assoc()['id_user'];
+    }
+
+    /**
+     * Lock or unlock a question.
+     * @param int $id The ID of the question to be locked.
+     * @param array $user The details of the user locking the question.
+     * @param bool $lock Whether to lock or unlock the question.
+     * @return void The HTTP code and the JSON data to the client.
+     * @throws Exception
+     */
+    public function lockQuestion(int $id, array $user, bool $lock = true): void
+    {
+        $questionModel = new QuestionModel();
+
+        // Authorization check
+        if (!UserPermissions::canLockQuestion($user['role'], $user['is_admin'])) {
+            $this->sendOutput('HTTP/1.1 403 Forbidden', ['error' => 'The user is not authorized to lock this question']);
+            return;
+        }
+
+        if ($questionModel->lockQuestion($id, $lock)) {
+            $this->sendOutput('HTTP/1.1 200 OK');
+        } else {
+            $this->sendOutput(
+                'HTTP/1.1 400 Bad Request',
+                ['error' => 'Invalid question ID']
+            );
+        }
     }
 }

@@ -45,7 +45,7 @@ get(API_ROOT_URI . '/get-questions/$pageId/$divId', function ($pageId, $divId = 
 // Get a question by its ID
 get(API_ROOT_URI . '/question/get/$id', function ($id) {
     setCorsHeaders();
-    $user = getUserFromToken(false);
+    $user = getUserFromToken(enforceToken: false);
     $sciper = $user ? $user['sciper'] : null;
     (new QuestionController())->fetchQuestion($id, $sciper);
 });
@@ -69,6 +69,20 @@ delete(API_ROOT_URI . '/question/delete/$id', function ($id) {
     setCorsHeaders();
     $user = getUserFromToken();
     (new QuestionController())->delete($id, $user);
+});
+
+// Lock a question
+post(API_ROOT_URI . '/question/lock/$id', function ($id) {
+    setCorsHeaders();
+    $user = getUserFromToken();
+    (new QuestionController())->lock($id, $user, lock: true);
+});
+
+// Unlock a question
+post(API_ROOT_URI . '/question/unlock/$id', function ($id) {
+    setCorsHeaders();
+    $user = getUserFromToken();
+    (new QuestionController())->lock($id, $user, lock: false);
 });
 
 // Add an answer to a question
@@ -127,14 +141,6 @@ get('/auth/details', function () {
     $token = getTokenOrDie();
     sendUserDetails($token);
 });
-
-// Admin routes
-// TODO: add admin routes
-//get(ADMIN_ROOT_URI, function () {
-//    setCorsHeaders();
-//    checkAuthentication();
-//    ensureAdmin();
-//});
 
 // PHP info route
 //get(API_ROOT_URI . '/php-info', function () {

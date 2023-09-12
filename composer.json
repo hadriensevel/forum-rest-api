@@ -4,7 +4,8 @@
     "firebase/php-jwt": "^6.8",
     "ext-mysqli": "*",
     "ext-curl": "*",
-    "ext-fileinfo": "*"
+    "ext-fileinfo": "*",
+    "ext-imap": "*"
   },
   "autoload": {
     "classmap": [
@@ -21,7 +22,9 @@
       "src/middlewares/cors.php",
       "src/middlewares/authentication.php",
       "src/utils/error.php",
-      "src/utils/serve-file.php"
+      "src/utils/serve-file.php",
+      "src/utils/generate-preview.php",
+      "src/utils/handle-image.php",
     ]
   }
 }

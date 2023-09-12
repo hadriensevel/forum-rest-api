@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2023. Hadrien Sevel
  * Project: forum-rest-api
- * File: mailer.php
+ * File: Mailer.php
  */
 
 namespace Mailer;
@@ -40,30 +40,28 @@ class Mailer
         // Sender
         $this->mailer->setFrom(MAILER_FROM, MAILER_FROM_NAME);
 
-        $this->mailer->isHTML(true);
+        $this->mailer->isHTML();
         $this->mailer->CharSet = 'UTF-8';
     }
 
     /**
-     * Send a new answer notification
-     * @param string $name
-     * @param string $email
-     * @param string $topic
+     * Send a new answer notification.
+     * @param string $name The name of the user who asked the question.
+     * @param string $email The email address of the user who asked the question.
      * @return void
      * @throws Exception
      */
-    public function sendNewAnswerNotification(string $name, string $email, string $topic): void
+    public function sendNewAnswerNotification(string $name, string $email): void
     {
         $body = file_get_contents('templates/new_answer_notification.html');
         $body = str_replace('{{name}}', $name, $body);
-        $body = str_replace('{{topic}}', $topic, $body);
         $this->sendEmail([$email], self::SUBJECT_NEW_ANSWER_NOTIFICATION, $body);
     }
 
     /**
-     * Email admins when an error occurs
-     * @param string $errorId
-     * @param string $error
+     * Email admins when an error occurs.
+     * @param string $errorId The ID of the error.
+     * @param string $error The error message.
      * @return void
      * @throws Exception
      */
@@ -75,10 +73,10 @@ class Mailer
     }
 
     /**
-     * Send an email
-     * @param array $recipients
-     * @param string $subject
-     * @param string $body
+     * Send an email.
+     * @param array $recipients An array of email addresses.
+     * @param string $subject The subject of the email.
+     * @param string $body The body of the email.
      * @return void
      * @throws Exception
      */
@@ -98,7 +96,7 @@ class Mailer
             $this->mailer->send();
 
             // Save the email in the "Sent" folder
-            //$this->saveEmail();
+            $this->saveEmail();
 
             // Catch errors
         } catch (Exception $e) {
@@ -107,7 +105,7 @@ class Mailer
     }
 
     /**
-     * Save the email in the "Sent" folder and set it as "Seen"
+     * Save the email in the "Sent" folder and set it as "Seen".
      * @return void
      */
     private function saveEmail(): void

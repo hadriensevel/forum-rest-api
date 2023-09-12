@@ -68,7 +68,7 @@ class QuestionModel extends DatabaseModel
         SELECT 
             {{questions}}.id as id,
             date,
-            title,
+            body,
             IF(COUNT(DISTINCT acceptedAnswers.id) > 0, TRUE, {{questions}}.resolved) AS resolved,
             IFNULL(l.likes, 0) AS likes,
             IFNULL(a.answers, 0) as answers,
@@ -188,17 +188,17 @@ class QuestionModel extends DatabaseModel
 
     /**
      * MySQL query to add a question
-     * @param string $title
-     * @param string $body
-     * @param string|null $image
-     * @param int $sciper
-     * @param string $page
-     * @param string|null $divId
-     * @param string $location
-     * @return int
+     * @param string|null $title The title of the question.
+     * @param string $body The body of the question.
+     * @param string|null $image The image of the question.
+     * @param int $sciper The sciper of the author.
+     * @param string $page The ID of the page.
+     * @param string|null $divId The ID of the notes div.
+     * @param string $location The location of the question.
+     * @return int The number of affected rows.
      * @throws Exception
      */
-    public function addQuestion(string $title, string $body, ?string $image, int $sciper, string $page, ?string $divId, string $location): int
+    public function addQuestion(?string $title, string $body, ?string $image, int $sciper, string $page, ?string $divId, string $location): int
     {
         $query = "INSERT INTO {{questions}} (title, body, image, id_user, id_page, id_notes_div, location) VALUES (?, ?, ?, ?, ?, ?, ?)";
         $params = array($title, $body, $image, $sciper, $page, $divId, $location);
@@ -207,13 +207,13 @@ class QuestionModel extends DatabaseModel
 
     /**
      * MySQL query to edit a question
-     * @param int $id
-     * @param string $title
-     * @param string $body
-     * @return int
+     * @param int $id The ID of the question.
+     * @param string|null $title The new title of the question.
+     * @param string $body The new body of the question.
+     * @return int The number of affected rows.
      * @throws Exception
      */
-    public function editQuestion(int $id, string $title, string $body): int
+    public function editQuestion(int $id, ?string $title, string $body): int
     {
         $query = "UPDATE {{questions}} SET title = ?, body = ? WHERE id = ?";
         $params = array($title, $body, $id);
@@ -222,8 +222,8 @@ class QuestionModel extends DatabaseModel
 
     /**
      * MySQL query to delete a question
-     * @param int $id
-     * @return int
+     * @param int $id The ID of the question.
+     * @return int The number of affected rows.
      * @throws Exception
      */
     public function deleteQuestion(int $id): int
@@ -235,8 +235,8 @@ class QuestionModel extends DatabaseModel
 
     /**
      * MySQL query to get the author of a question
-     * @param int $id
-     * @return false|mysqli_result
+     * @param int $id The ID of the question.
+     * @return false|mysqli_result The result of the query.
      * @throws Exception
      */
     public function getQuestionAuthor(int $id): false|mysqli_result
@@ -248,14 +248,29 @@ class QuestionModel extends DatabaseModel
 
     /**
      * MySQL query to lock a question
-     * @param int $id
-     * @return int
+     * @param int $id The ID of the question to be locked.
+     * @param bool $lock Whether to lock or unlock the question.
+     * @return int The number of affected rows.
      * @throws Exception
      */
-    public function lockQuestion(int $id): int
+    public function lockQuestion(int $id, bool $lock = true): int
     {
-        $query = "UPDATE {{questions}} SET locked = true WHERE id = ?";
+        $query = "UPDATE {{questions}} SET locked = $lock WHERE id = ?";
         $params = array($id);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }
+
+    /**
+     * MySQL query to get the image associated with a question
+     * @param int $id The ID of the question.
+     * @return false|mysqli_result The result of the query.
+     * @throws Exception
+     */
+    public function getQuestionImage(int $id): false|mysqli_result
+    {
+        $query = "SELECT image FROM {{questions}} WHERE id = ?";
+        $params = array($id);
+        return $this->createAndRunPreparedStatement($query, $params);
+    }
+
 }

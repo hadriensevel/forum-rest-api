@@ -6,10 +6,9 @@
 
 CREATE TABLE users
 (
-    sciper  INT                                      NOT NULL PRIMARY KEY,
-    name    VARCHAR(100)                             NOT NULL,
-    email   VARCHAR(100)                             NOT NULL,
-    role    ENUM ('student', 'assistant', 'teacher') NOT NULL DEFAULT 'student',
+    sciper   INT                                      NOT NULL PRIMARY KEY,
+    email    VARCHAR(100)                             NOT NULL,
+    role     ENUM ('student', 'assistant', 'teacher') NOT NULL DEFAULT 'student',
     is_admin BOOLEAN                                           DEFAULT false
 );
 
@@ -28,7 +27,7 @@ CREATE TABLE questions
 (
     id           INT                         NOT NULL AUTO_INCREMENT PRIMARY KEY,
     date         DATETIME                    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    title        VARCHAR(300)                NOT NULL,
+    title        VARCHAR(300)                         DEFAULT NULL,
     body         TEXT                        NOT NULL,
     image        VARCHAR(100)                         DEFAULT NULL,
     id_user      INT                         NOT NULL,
@@ -60,7 +59,7 @@ CREATE TABLE answers
 #    id_parent_answer   INT               DEFAULT NULL,
     accepted           BOOLEAN           DEFAULT false,
     FOREIGN KEY (id_user) REFERENCES users (sciper),
-    FOREIGN KEY (id_parent_question) REFERENCES questions (id) ON DELETE CASCADE
+    FOREIGN KEY (id_parent_question) REFERENCES questions (id) ON DELETE CASCADE ON UPDATE CASCADE
 #    FOREIGN KEY (id_parent_answer) REFERENCES answers (id) ON DELETE CASCADE
 );
 
@@ -75,7 +74,7 @@ CREATE TABLE likes_questions
     id_question INT      NOT NULL,
     like_date   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_user) REFERENCES users (sciper),
-    FOREIGN KEY (id_question) REFERENCES questions (id) ON DELETE CASCADE
+    FOREIGN KEY (id_question) REFERENCES questions (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- Index for querying by id_question to count likes

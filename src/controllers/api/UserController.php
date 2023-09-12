@@ -29,20 +29,19 @@ class UserController extends BaseController
         $defaultDetails = [
             'sciper' => $sciper,
             'role' => 'student',
-            'is_admin' => false
+            'is_admin' => false,
+            'name' => $name
         ];
 
+        // If userDetails is empty and we need to enforce the user's presence in the database
         if (empty($userDetails) && $enforceInDatabase) {
             $this->addUser($sciper, $name, $email);
             return $defaultDetails;
         }
 
-        $userDetails = $userDetails ?? $defaultDetails;
-
-        // Add the name to the data that will be returned
-        $userDetails['name'] = $name;
-
-        return $userDetails;
+        // If userDetails is empty (but not enforced in database), or the fetched details don't have certain attributes,
+        // the values from defaultDetails will be used.
+        return array_merge($defaultDetails, $userDetails ?: []);
     }
 
     /**

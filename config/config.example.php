@@ -33,3 +33,7 @@ const TEQUILA_CONFIG = [
     'sServer' => '',
     'iTimeout' => '',
 ];
+
+const JWT_SECRET_KEY = '';
+
+ini_set('session.gc_maxlifetime', '');

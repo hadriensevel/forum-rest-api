@@ -5,7 +5,9 @@
     "ext-mysqli": "*",
     "ext-curl": "*",
     "ext-fileinfo": "*",
-    "ext-imap": "*"
+    "ext-imap": "*",
+    "ext-dom": "*",
+    "ext-libxml": "*"
   },
   "autoload": {
     "classmap": [
@@ -25,6 +27,7 @@
       "src/utils/serve-file.php",
       "src/utils/generate-preview.php",
       "src/utils/handle-image.php",
+      "src/utils/scrape-sections.php"
     ]
   }
 }

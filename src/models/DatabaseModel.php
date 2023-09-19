@@ -80,7 +80,8 @@ class DatabaseModel
             '{{likes_questions}}' => DB_PREFIX . 'likes_questions',
             '{{likes_answers}}' => DB_PREFIX . 'likes_answers',
             '{{users}}' => DB_PREFIX . 'users',
-            '{{feature_flags}}' => DB_PREFIX . 'feature_flags'
+            '{{feature_flags}}' => DB_PREFIX . 'feature_flags',
+            '{{sections}}' => DB_PREFIX . 'sections',
         ];
 
         return str_replace(array_keys($replacements), array_values($replacements), $query);

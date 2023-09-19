@@ -14,6 +14,33 @@ use Exception;
 class QuestionController extends BaseController
 {
     /**
+     * Get the list of all questions, or for a page, or a page with a div id.
+     * @param string|null $pageId The ID of the page (optional).
+     * @param string|null $divId The ID of the notes division (optional).
+     * @param int|null $userId The ID of the user requesting the questions (optional).
+     * @param bool $onlyUsersQuestions Whether to fetch only the questions of the given user (optional).
+     * @return void The HTTP code and the JSON data to the client.
+     * @throws Exception
+     */
+    public function fetchQuestions(?string $pageId = null, ?string $divId = null, ?int $userId = null, bool $onlyUsersQuestions = false): void
+    {
+        $questionModel = new QuestionModel();
+        $result = $questionModel->getQuestions($pageId, $divId, $userId, $onlyUsersQuestions);
+
+        // Fetch all rows directly into an array
+        $questions = $result->fetch_all(MYSQLI_ASSOC);
+
+        // Generate the preview for each question and remove the body
+        foreach ($questions as &$question) {
+            $question['preview'] = generatePreview($question['body']);
+            unset($question['body']);
+        }
+
+        $this->sendOutput('HTTP/1.1 200 OK', ['questions' => $questions]);
+    }
+
+
+    /**
      * Get the number of questions for a page, or a page with a div id.
      * @param string $pageId The ID of the page.
      * @param string|null $divId The ID of the notes division (optional).
@@ -53,31 +80,6 @@ class QuestionController extends BaseController
         }, $result->fetch_all(MYSQLI_ASSOC));
 
         $this->sendOutput('HTTP/1.1 200 OK', $data);
-    }
-
-
-    /**
-     * Get the list of questions for a page, or a page with a div id
-     * @param string $pageId The ID of the page.
-     * @param string|null $divId The ID of the notes div (optional).
-     * @return void The HTTP code and the JSON data to the client.
-     * @throws Exception
-     */
-    public function fetchQuestionsByPage(string $pageId, ?string $divId = null): void
-    {
-        $questionModel = new QuestionModel();
-        $result = $questionModel->getQuestionsByPage($pageId, $divId);
-
-        // Fetch all rows directly into an array
-        $questions = $result->fetch_all(MYSQLI_ASSOC);
-
-        // Generate the preview for each question and remove the body
-        foreach ($questions as &$question) {
-            $question['preview'] = generatePreview($question['body']);
-            unset($question['body']);
-        }
-
-        $this->sendOutput('HTTP/1.1 200 OK', ['questions' => $questions]);
     }
 
     /**
@@ -128,18 +130,18 @@ class QuestionController extends BaseController
             return;
         }
 
-        // Check if the question title is set
-        if (!isset($postData['question-title'])) {
-            $postData['question-title'] = null;
-        }
-
         if ($postData['div-id'] === 'undefined') {
             $postData['div-id'] = null;
         }
 
+        // Remove .html from the page name if it's there
+        $postData['page'] = str_replace('.html', '', $postData['page']);
+
+        // Sanitize the question body
+        //$postData['question-body'] = htmlspecialchars($postData['question-body']);
+
         $questionModel = new QuestionModel();
         $affectedRows = $questionModel->addQuestion(
-            $postData['question-title'],
             $postData['question-body'],
             $imageName,
             $sciper,
@@ -172,6 +174,7 @@ class QuestionController extends BaseController
         }
 
         $postData = $_POST;
+
         // Check required fields
         if (!isset($postData['question-body'])) {
             $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Missing required fields']);
@@ -187,11 +190,7 @@ class QuestionController extends BaseController
             return;
         }
 
-        if (!isset($postData['question-title'])) {
-            $postData['question-title'] = null;
-        }
-
-        $affectedRows = $questionModel->editQuestion($id, $postData['question-title'], $postData['question-body']);
+        $affectedRows = $questionModel->editQuestion($id, $postData['question-body']);
 
         if ($affectedRows === 0) {
             $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Error while saving the question']);
@@ -241,7 +240,7 @@ class QuestionController extends BaseController
      * @return int The sciper of the author.
      * @throws Exception
      */
-    public function getAuthor(int $id): int
+    private function getAuthor(int $id): int
     {
         $questionModel = new QuestionModel();
         $response = $questionModel->getQuestionAuthor($id);

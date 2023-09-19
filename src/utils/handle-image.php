@@ -5,7 +5,7 @@
  * File: handle-image.php
  */
 
-const UPLOAD_DIR = __DIR__ . '/../../../public/uploads/';
+const UPLOAD_DIR = __DIR__ . '/../../public/uploads/';
 
 /**
  * Handle the image upload and return its name if successful

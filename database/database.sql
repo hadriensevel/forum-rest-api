@@ -12,22 +12,10 @@ CREATE TABLE users
     is_admin BOOLEAN                                           DEFAULT false
 );
 
-# No topics for now
-# CREATE TABLE topics
-# (
-#     id_topic        INT                                  NOT NULL AUTO_INCREMENT PRIMARY KEY,
-#     id_parent_topic INT          DEFAULT NULL,
-#     category        ENUM ('exercise', 'section', 'quiz') NOT NULL,
-#     name            VARCHAR(100) DEFAULT NULL,
-#     number          VARCHAR(10)                          NOT NULL,
-#     FOREIGN KEY (id_parent_topic) REFERENCES topics (id_topic)
-# );
-
 CREATE TABLE questions
 (
     id           INT                         NOT NULL AUTO_INCREMENT PRIMARY KEY,
     date         DATETIME                    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    title        VARCHAR(300)                         DEFAULT NULL,
     body         TEXT                        NOT NULL,
     image        VARCHAR(100)                         DEFAULT NULL,
     id_user      INT                         NOT NULL,
@@ -41,7 +29,6 @@ CREATE TABLE questions
 #    likes_count    INT                   DEFAULT 0,     -- Denormalized count of likes (not implemented yet)
 #    answers_count  INT                   DEFAULT 0,     -- Denormalized count of answers (not implemented yet)
     FOREIGN KEY (id_user) REFERENCES users (sciper)
-#     FOREIGN KEY (id_topic) REFERENCES topics (id_topic)
 );
 
 -- Index for querying by id_notes_div and id_page
@@ -80,16 +67,18 @@ CREATE TABLE likes_questions
 -- Index for querying by id_question to count likes
 CREATE INDEX idx_likes_questions ON likes_questions (id_question);
 
-# No likes for answers for now
-# CREATE TABLE likes_answers
-# (
-#     id        INT      NOT NULL AUTO_INCREMENT PRIMARY KEY,
-#     id_user   INT      NOT NULL,
-#     id_answer INT      NOT NULL,
-#     like_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-#     FOREIGN KEY (id_user) REFERENCES users (sciper),
-#     FOREIGN KEY (id_answer) REFERENCES answers (id) ON DELETE CASCADE
-# );
+CREATE TABLE likes_answers
+(
+    id        INT      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_user   INT      NOT NULL,
+    id_answer INT      NOT NULL,
+    like_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_user) REFERENCES users (sciper),
+    FOREIGN KEY (id_answer) REFERENCES answers (id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- Index for querying by id_answer to count likes
+CREATE INDEX idx_likes_answers ON likes_answers (id_answer);
 
 # No bookmarks for now
 # CREATE TABLE bookmarks
@@ -106,6 +95,12 @@ CREATE TABLE feature_flags
 (
     name    VARCHAR(100) NOT NULL PRIMARY KEY UNIQUE,
     enabled BOOLEAN      NOT NULL DEFAULT false
+);
+
+CREATE TABLE sections
+(
+    id_section VARCHAR(100) NOT NULL PRIMARY KEY,
+    name       VARCHAR(100) NOT NULL
 );
 
 # Insert default feature flags

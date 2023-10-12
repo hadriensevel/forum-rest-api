@@ -19,24 +19,38 @@ class QuestionController extends BaseController
      * @param string|null $divId The ID of the notes division (optional).
      * @param int|null $userId The ID of the user requesting the questions (optional).
      * @param bool $onlyUsersQuestions Whether to fetch only the questions of the given user (optional).
+     * @param int|null $pageNumber The page number (optional).
      * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
-    public function fetchQuestions(?string $pageId = null, ?string $divId = null, ?int $userId = null, bool $onlyUsersQuestions = false): void
+    public function fetchQuestions(
+        string  $sort,
+        ?string $pageId = null,
+        ?string $divId = null,
+        ?int    $userId = null,
+        bool    $onlyUsersQuestions = false,
+        ?int    $pageNumber = null): void
     {
+        $questionsPerPage = 50;
+
         $questionModel = new QuestionModel();
-        $result = $questionModel->getQuestions($pageId, $divId, $userId, $onlyUsersQuestions);
+
+        $totalQuestions = $questionModel->countQuestions($pageId, $divId, $userId, $onlyUsersQuestions);
+        $totalPages = ceil($totalQuestions / $questionsPerPage);
+
+        $result = $questionModel->getQuestions($pageId, $divId, $userId, $onlyUsersQuestions, $pageNumber, $questionsPerPage, $sort);
 
         // Fetch all rows directly into an array
         $questions = $result->fetch_all(MYSQLI_ASSOC);
 
         // Generate the preview for each question and remove the body
         foreach ($questions as &$question) {
-            $question['preview'] = generatePreview($question['body']);
+            $question['preview'] = generatePreview($question['body'], $question['html']);
             unset($question['body']);
+            unset($question['html']);
         }
 
-        $this->sendOutput('HTTP/1.1 200 OK', ['questions' => $questions]);
+        $this->sendOutput('HTTP/1.1 200 OK', ['questions' => $questions, 'total_pages' => $totalPages]);
     }
 
 
@@ -47,7 +61,8 @@ class QuestionController extends BaseController
      * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
-    public function getQuestionsCountForPage(string $pageId, ?string $divId = null): void
+    public
+    function getQuestionsCountForPage(string $pageId, ?string $divId = null): void
     {
         $questionModel = new QuestionModel();
 
@@ -64,7 +79,8 @@ class QuestionController extends BaseController
      * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
-    public function getDivQuestionCount(string $pageId): void
+    public
+    function getDivQuestionCount(string $pageId): void
     {
         $questionModel = new QuestionModel();
 
@@ -89,13 +105,26 @@ class QuestionController extends BaseController
      * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
-    public function fetchQuestion(int $questionId, ?int $sciper): void
+    public
+    function fetchQuestion(int $questionId, ?int $sciper): void
     {
         // Create an instance of the model
         $questionModel = new QuestionModel();
 
         // Fetch question and its answers from the model
         $response = $questionModel->getQuestionWithAnswers($questionId, $sciper);
+
+        // Escape HTML entities in question
+        if (!$response['question']['html']) $response['question']['body'] = htmlspecialchars($response['question']['body']);
+        unset($response['question']['html']);
+
+        // Escape HTML entities in answers
+        foreach ($response['question']['answers'] as &$answer) {
+            // If the role of the user is teacher, don't escape HTML entities
+            if ($answer['user_role'] !== 'teacher') {
+                $answer['body'] = htmlspecialchars($answer['body']);
+            }
+        }
 
         // Check if there's any data
         if (!$response) {
@@ -112,7 +141,8 @@ class QuestionController extends BaseController
      * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
-    public function create(int $sciper): void
+    public
+    function create(int $sciper): void
     {
         // Check Content-Type
         if (!isset($_SERVER['CONTENT_TYPE']) || !str_contains($_SERVER['CONTENT_TYPE'], 'multipart/form-data')) {
@@ -136,9 +166,6 @@ class QuestionController extends BaseController
 
         // Remove .html from the page name if it's there
         $postData['page'] = str_replace('.html', '', $postData['page']);
-
-        // Sanitize the question body
-        //$postData['question-body'] = htmlspecialchars($postData['question-body']);
 
         $questionModel = new QuestionModel();
         $affectedRows = $questionModel->addQuestion(
@@ -165,7 +192,8 @@ class QuestionController extends BaseController
      * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
-    public function edit(int $id, array $user): void
+    public
+    function edit(int $id, array $user): void
     {
         // Check Content-Type
         if (!isset($_SERVER['CONTENT_TYPE']) || !str_contains($_SERVER['CONTENT_TYPE'], 'multipart/form-data')) {
@@ -207,7 +235,8 @@ class QuestionController extends BaseController
      * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
-    public function delete(int $id, array $user): void
+    public
+    function delete(int $id, array $user): void
     {
         $questionModel = new QuestionModel();
         $userIsAuthor = $this->getAuthor($id) === $user['sciper'];
@@ -240,7 +269,8 @@ class QuestionController extends BaseController
      * @return int The sciper of the author.
      * @throws Exception
      */
-    private function getAuthor(int $id): int
+    private
+    function getAuthor(int $id): int
     {
         $questionModel = new QuestionModel();
         $response = $questionModel->getQuestionAuthor($id);
@@ -255,7 +285,8 @@ class QuestionController extends BaseController
      * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
      */
-    public function lockQuestion(int $id, array $user, bool $lock = true): void
+    public
+    function lockQuestion(int $id, array $user, bool $lock = true): void
     {
         $questionModel = new QuestionModel();
 

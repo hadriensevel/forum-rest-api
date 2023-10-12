@@ -46,15 +46,25 @@ class Mailer
 
     /**
      * Send a new answer notification.
-     * @param string $name The name of the user who asked the question.
+     * @param string $section
+     * @param int $questionId
      * @param string $email The email address of the user who asked the question.
      * @return void
      * @throws Exception
      */
-    public function sendNewAnswerNotification(string $name, string $email): void
+    public function sendNewAnswerNotification(?string $section, int $questionId, string $email): void
     {
-        $body = file_get_contents('templates/new_answer_notification.html');
-        $body = str_replace('{{name}}', $name, $body);
+        $linkGm = 'https://botafogo.saitis.net/analyse-1-GM/?page=forum_toutes_les_questions&question=' . $questionId;
+        $linkOnline = 'https://botafogo.saitis.net/analyse-1-online/?page=forum_toutes_les_questions&question=' . $questionId;
+
+        if ($section === null) {
+            $section = 'Analyse 1';
+        }
+
+        $body = file_get_contents(__DIR__ . '/templates/new_answer_notification.html');
+        $body = str_replace('{{section}}', $section, $body);
+        $body = str_replace('{{link_gm}}', $linkGm, $body);
+        $body = str_replace('{{link_online}}', $linkOnline, $body);
         $this->sendEmail([$email], self::SUBJECT_NEW_ANSWER_NOTIFICATION, $body);
     }
 
@@ -87,6 +97,9 @@ class Mailer
             foreach ($recipients as $recipient) {
                 $this->mailer->addAddress($recipient);
             }
+
+            // Reply to
+            $this->mailer->addReplyTo('support-technique.analyse@groupes.epfl.ch');
 
             // Content of the email
             $this->mailer->Subject = $subject;

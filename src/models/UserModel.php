@@ -27,15 +27,14 @@ class UserModel extends DatabaseModel
     /**
      * MyQSL query to add a user in the database
      * @param int $sciper
-     * @param string $name
      * @param string $email
      * @return int
      * @throws Exception
      */
-    public function addUser(int $sciper, string $name, string $email): int
+    public function addUser(int $sciper, string $email): int
     {
-        $query = "INSERT INTO {{users}} (sciper, name, email) VALUES (?, ?, ?)";
-        $params = array($sciper, $name, $email);
+        $query = "INSERT INTO {{users}} (sciper, email) VALUES (?, ?)";
+        $params = array($sciper, $email);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }
 
@@ -47,7 +46,7 @@ class UserModel extends DatabaseModel
      */
     public function getUserEmail(int $sciper): false|mysqli_result
     {
-        $query = "SELECT email FROM {{users}} WHERE sciper = ?";
+        $query = "SELECT email, email_notifications FROM {{users}} WHERE sciper = ?";
         $params = array($sciper);
         return $this->createAndRunPreparedStatement($query, $params);
     }

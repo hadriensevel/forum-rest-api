@@ -19,24 +19,36 @@ class QuestionModel extends DatabaseModel
      * @param string|null $divId The ID of the notes division (optional).
      * @param int|null $userId The ID of the user requesting the questions (optional).
      * @param bool $onlyUsersQuestions Whether to only get the questions of the user (optional).
+     * @param int|null $pageNumber The page number (optional).
+     * @param int|null $questionsPerPage The number of questions per page (optional).
+     * @param string $sortBy The sorting method (optional).
      * @return false|mysqli_result
      * @throws Exception
      */
-    public function getQuestions(?string $pageId = null, ?string $divId = null, ?int $userId = null, bool $onlyUsersQuestions = false): false|mysqli_result
+    public function getQuestions(
+        ?string $pageId = null,
+        ?string $divId = null,
+        ?int    $userId = null,
+        bool    $onlyUsersQuestions = false,
+        ?int    $pageNumber = null,
+        ?int    $questionsPerPage = null,
+        string  $sortBy = 'date'): false|mysqli_result
     {
         $params = [];
 
         $query = "
         SELECT 
-            {{questions}}.id as id,
+            {{questions}}.id AS id,
             date,
+            last_activity,
             body,
             IF(COUNT(DISTINCT acceptedAnswers.id) > 0, TRUE, {{questions}}.resolved) AS resolved,
             IFNULL(l.likes, 0) AS likes,
-            IFNULL(a.answers, 0) as answers,
+            IFNULL(a.answers, 0) AS answers,
             locked,
             location,
-            {{sections}}.name as section_name";
+            html,
+            {{sections}}.name AS section_name";
 
         // Add user_is_author part if userId is not null
         if ($userId !== null) {
@@ -81,9 +93,64 @@ class QuestionModel extends DatabaseModel
 
         $query .= " GROUP BY {{questions}}.id";
 
+        // Dynamic ORDER BY clause
+        $query .= match ($sortBy) {
+            'likes' => " ORDER BY likes DESC, date DESC",
+            'resolved' => " ORDER BY resolved DESC, date DESC",
+            'non-resolved' => " ORDER BY resolved ASC, date DESC",
+            'answers' => " ORDER BY answers DESC, date DESC",
+            'no-answer' => " ORDER BY answers ASC, date DESC",
+            'last-activity' => " ORDER BY last_activity DESC, date DESC",
+            default => " ORDER BY date DESC",
+        };
+
+        // Add the LIMIT and OFFSET clauses to implement pagination
+        if ($pageNumber && $questionsPerPage) {
+            $offset = ($pageNumber - 1) * $questionsPerPage;
+            $query .= " LIMIT ? OFFSET ?";
+            $params[] = $questionsPerPage;
+            $params[] = $offset;
+        }
+
         return $this->createAndRunPreparedStatement($query, $params);
     }
 
+    /**
+     * MySQL query to count the number of questions, all or for a page in the lecture notes or exercises or for a user.
+     * @param string|null $pageId The ID of the page (optional).
+     * @param string|null $divId The ID of the notes division (optional).
+     * @param int|null $userId The ID of the user requesting the questions (optional).
+     * @param bool $onlyUsersQuestions Whether to only get the questions of the user (optional).
+     * @return int The number of questions.
+     * @throws Exception
+     */
+    public function countQuestions(?string $pageId = null, ?string $divId = null, ?int $userId = null, bool $onlyUsersQuestions = false): int
+    {
+        $params = [];
+        $query = "SELECT COUNT(*) AS total FROM {{questions}} WHERE visible = true";
+
+        if ($pageId !== null) {
+            $query .= " AND id_page = ?";
+            $params[] = $pageId;
+        }
+        if ($divId !== null) {
+            $query .= " AND id_notes_div = ?";
+            $params[] = $divId;
+        }
+        if ($userId !== null && $onlyUsersQuestions) {
+            $query .= " AND id_user = ?";
+            $params[] = $userId;
+        }
+
+        $result = $this->createAndRunPreparedStatement($query, $params);
+
+        if ($result) {
+            $row = $result->fetch_assoc();
+            return intval($row['total']);
+        } else {
+            throw new Exception("Failed to count questions");
+        }
+    }
 
     /**
      * MySQL query to get the number of questions for a page in the lecture notes or exercises
@@ -138,8 +205,9 @@ class QuestionModel extends DatabaseModel
         // Base query to fetch the main question details
         $questionQuery = "
         SELECT 
-            {{questions}}.id as id,
+            {{questions}}.id AS id,
             date,
+            last_activity,
             body,
             image,
             id_page AS page_id,
@@ -148,7 +216,8 @@ class QuestionModel extends DatabaseModel
             IFNULL(l.likes, 0) AS likes,
             locked,
             resolved,
-            {{sections}}.name as section_name";
+            html,
+            {{sections}}.name AS section_name";
 
         // Add user_is_author and user_liked part if userId is not null
         if ($userId !== null) {
@@ -169,8 +238,8 @@ class QuestionModel extends DatabaseModel
 
         if ($userId !== null) {
             $questionQuery .= "
-        LEFT JOIN {{likes_questions}} AS user_likes
-        ON {{questions}}.id = user_likes.id_question AND user_likes.id_user = ?";
+            LEFT JOIN {{likes_questions}} AS user_likes
+            ON {{questions}}.id = user_likes.id_question AND user_likes.id_user = ?";
         }
 
         $questionQuery .= " WHERE {{questions}}.id = ?";
@@ -193,21 +262,39 @@ class QuestionModel extends DatabaseModel
             date,
             body,
             accepted,
+            IFNULL(l.likes, 0) AS likes,
             {{users}}.role as user_role";
 
-        // Add user_is_author if userId is not null
+        // Add user_is_author and user_liked if userId is not null
         if ($userId !== null) {
             $answersQuery .= ",
-            CASE WHEN {{answers}}.id_user = ? THEN TRUE ELSE FALSE END AS user_is_author";
+            CASE WHEN {{answers}}.id_user = ? THEN TRUE ELSE FALSE END AS user_is_author,
+            CASE WHEN user_likes.id_user IS NOT NULL THEN TRUE ELSE FALSE END AS user_liked";
         }
+
+        // Add check for answer being by OP
+        $answersQuery .= ",
+        CASE WHEN {{answers}}.id_user = (SELECT id_user FROM {{questions}} WHERE id = ?) THEN TRUE ELSE FALSE END AS is_op";
 
         $answersQuery .= "
         FROM {{answers}}
-        JOIN {{users}} ON {{answers}}.id_user = {{users}}.sciper
-        WHERE id_parent_question = ?";
+        LEFT JOIN (
+            SELECT id_answer, COUNT(*) AS likes 
+            FROM {{likes_answers}} 
+            GROUP BY id_answer
+        ) l ON {{answers}}.id = l.id_answer
+        JOIN {{users}} ON {{answers}}.id_user = {{users}}.sciper";
 
-        if ($userId) $answersParams = array($userId, $questionId);
-        else $answersParams = array($questionId);
+        if ($userId !== null) {
+            $answersQuery .= "
+            LEFT JOIN {{likes_answers}} AS user_likes
+            ON {{answers}}.id = user_likes.id_answer AND user_likes.id_user = ?";
+        }
+
+        $answersQuery .= " WHERE id_parent_question = ?";
+
+        if ($userId) $answersParams = array($userId, $questionId, $userId, $questionId);
+        else $answersParams = array($questionId, $questionId);
         $answersResult = $this->createAndRunPreparedStatement($answersQuery, $answersParams);
 
         $answers = [];
@@ -248,7 +335,6 @@ class QuestionModel extends DatabaseModel
     /**
      * MySQL query to edit a question.
      * @param int $id The ID of the question.
-     * @param string|null $title The new title of the question.
      * @param string $body The new body of the question.
      * @return int The number of affected rows.
      * @throws Exception
@@ -311,6 +397,30 @@ class QuestionModel extends DatabaseModel
         $query = "SELECT image FROM {{questions}} WHERE id = ?";
         $params = array($id);
         return $this->createAndRunPreparedStatement($query, $params);
+    }
+
+    public function getQuestionSection(int $id): false|mysqli_result
+    {
+        $query = "SELECT {{sections}}.name AS section_name 
+        FROM {{questions}}
+        LEFT JOIN {{sections}}
+        ON {{questions}}.id_page = {{sections}}.id_section
+        WHERE id = ?";
+        $params = array($id);
+        return $this->createAndRunPreparedStatement($query, $params);
+    }
+
+    /**
+     * MySQL query to update the last updated date of a question.
+     * @param int $id The ID of the question.
+     * @return int The number of affected rows.
+     * @throws Exception
+     */
+    public function updateQuestionLastActivity(int $id): int
+    {
+        $query = "UPDATE {{questions}} SET last_activity = CURRENT_TIMESTAMP WHERE id = ?";
+        $params = array($id);
+        return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }
 
 }

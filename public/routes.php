@@ -9,6 +9,7 @@ use Controller\Api\QuestionController;
 use Controller\Api\AnswerController;
 use Controller\Api\LikeController;
 use Controller\Api\FeatureFlagsController;
+use Mailer\Mailer;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -33,22 +34,28 @@ get(API_ROOT_URI . '/get-questions-count-divs/$pageId', function ($pageId) {
 // Get all questions
 get(API_ROOT_URI . '/get-questions/all-questions', function () {
     setCorsHeaders();
-    (new QuestionController())->fetchQuestions();
+    $pageNumber = $_GET['page'] ?? null;
+    $sort = $_GET['sort'] ?? 'DATE';
+    (new QuestionController())->fetchQuestions(sort: $sort, pageNumber: $pageNumber);
 });
 
 // Get all questions
 get(API_ROOT_URI . '/get-questions/my-questions', function () {
     setCorsHeaders();
+    $pageNumber = $_GET['page'] ?? null;
+    $sort = $_GET['sort'] ?? 'DATE';
     $user = getUserFromToken();
-    (new QuestionController())->fetchQuestions(userId: $user['sciper'], onlyUsersQuestions: true);
+    (new QuestionController())->fetchQuestions(sort: $sort, userId: $user['sciper'], onlyUsersQuestions: true, pageNumber: $pageNumber);
 });
 
 // Get questions in a page
 get(API_ROOT_URI . '/get-questions/$pageId', function ($pageId) {
     setCorsHeaders();
+    $pageNumber = $_GET['page'] ?? null;
+    $sort = $_GET['sort'] ?? 'DATE';
     $user = getUserFromToken(enforceToken: false);
     $sciper = $user ? $user['sciper'] : null;
-    (new QuestionController())->fetchQuestions($pageId, userId: $sciper);
+    (new QuestionController())->fetchQuestions(sort: $sort, pageId: $pageId, userId: $sciper, pageNumber: $pageNumber);
 });
 
 // Get questions in a page with a div id
@@ -56,7 +63,9 @@ get(API_ROOT_URI . '/get-questions/$pageId/$divId', function ($pageId, $divId) {
     setCorsHeaders();
     $user = getUserFromToken(enforceToken: false);
     $sciper = $user ? $user['sciper'] : null;
-    (new QuestionController())->fetchQuestions($pageId, $divId, userId: $sciper);
+    $pageNumber = $_GET['page'] ?? null;
+    $sort = $_GET['sort'] ?? 'DATE';
+    (new QuestionController())->fetchQuestions(sort: $sort, pageId: $pageId, divId: $divId, userId: $sciper, pageNumber: $pageNumber);
 });
 
 // Get a question by its ID

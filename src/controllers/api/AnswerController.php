@@ -8,7 +8,10 @@
 namespace Controller\Api;
 
 use Model\AnswerModel;
+use Model\QuestionModel;
+use Model\UserModel;
 use Users\UserPermissions;
+use Mailer\Mailer;
 use Exception;
 
 class AnswerController extends BaseController
@@ -59,8 +62,7 @@ class AnswerController extends BaseController
             return;
         }
 
-        // Escape HTML in the body
-        $answerBody = htmlspecialchars($postData['answer-body']);
+        $answerBody = $postData['answer-body'];
         $questionId = $postData['question-id'];
 
         $answerModel = new AnswerModel();
@@ -68,6 +70,38 @@ class AnswerController extends BaseController
         if ($answerModel->addAnswer($answerBody, $sciper, $questionId) === 0) {
             $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Wrong question ID or user ID']);
             return;
+        }
+
+        // Update the last activity date of the question
+        $questionModel = new QuestionModel();
+        $questionModel->updateQuestionLastActivity($questionId);
+
+        // Send an email notification to the author of the question
+        try {
+            $questionAuthorId = $questionModel->getQuestionAuthor($questionId)->fetch_assoc()['id_user'];
+
+            $userModel = new UserModel();
+            $questionAuthorEmailNotif = $userModel->getUserEmail($questionAuthorId)->fetch_assoc();
+            $questionAuthorEmail = $questionAuthorEmailNotif['email'];
+
+            // Check if the user posting the answer is the user who asked the question
+            if ($questionAuthorId === $sciper) {
+                $questionAuthorEmailNotif['email_notifications'] = false;
+            }
+
+            if ($questionAuthorEmailNotif['email_notifications']) {
+                $questionSection = $questionModel->getQuestionSection($questionId)->fetch_assoc()['section_name'];
+
+                $mailer = new Mailer();
+                $mailer->sendNewAnswerNotification(
+                    $questionSection,
+                    $questionId,
+                    $questionAuthorEmail
+                );
+            }
+        } catch (Exception $e) {
+            $mailer = new Mailer();
+            $mailer->sendErrorEmail('ADD_ANSWER_NOTIFICATION', $e->getMessage());
         }
 
         $this->sendOutput('HTTP/1.1 200 OK');
@@ -94,8 +128,7 @@ class AnswerController extends BaseController
             return;
         }
 
-        // Escape HTML in the body
-        $answerBody = htmlspecialchars($postData['answer-body']);
+        $answerBody = $postData['answer-body'];
 
         $answerModel = new AnswerModel();
         $userIsAuthor = $this->getAuthor($id) === $user['sciper'];

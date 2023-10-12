@@ -9,10 +9,11 @@
  * Generate a preview of a question, with a given limit of characters,
  * without cutting LaTeX content or in the middle of a word
  * @param string $content The content of the question
+ * @param bool $html Whether to escape HTML characters or not
  * @param int $limit The maximum number of characters
  * @return string
  */
-function generatePreview(string $content, int $limit = 200): string
+function generatePreview(string $content, bool $html, int $limit = 200): string
 {
     // Match both inline and block LaTeX content
     $pattern = '/\\\\\([\s\S]*?\\\\\)|\\\\\[[\s\S]*?\\\\\]/';
@@ -60,7 +61,11 @@ function generatePreview(string $content, int $limit = 200): string
         $preview .= '...';
     }
 
-    return $preview;
+    if ($html) {
+        return $preview;
+    }
+
+    return htmlspecialchars($preview);
 }
 
 /**

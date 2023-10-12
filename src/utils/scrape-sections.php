@@ -44,5 +44,5 @@ function scrapeSections(string $url): void
         echo $name . ' ' . $sectionId . '<br>';
     }
 
-    echo '<b>Sections scraped successfully.</b>';
+    echo '<b>Scraped successfully :)</b>';
 }

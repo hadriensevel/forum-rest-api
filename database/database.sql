@@ -6,26 +6,29 @@
 
 CREATE TABLE users
 (
-    sciper   INT                                      NOT NULL PRIMARY KEY,
-    email    VARCHAR(100)                             NOT NULL,
-    role     ENUM ('student', 'assistant', 'teacher') NOT NULL DEFAULT 'student',
-    is_admin BOOLEAN                                           DEFAULT false
+    sciper              INT                                      NOT NULL PRIMARY KEY,
+    email               VARCHAR(100)                             NOT NULL,
+    role                ENUM ('student', 'assistant', 'teacher') NOT NULL DEFAULT 'student',
+    is_admin            BOOLEAN                                  NOT NULL DEFAULT false,
+    email_notifications BOOLEAN                                  NOT NULL DEFAULT true
 );
 
 CREATE TABLE questions
 (
-    id           INT                         NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    date         DATETIME                    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    body         TEXT                        NOT NULL,
-    image        VARCHAR(100)                         DEFAULT NULL,
-    id_user      INT                         NOT NULL,
+    id            INT                         NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    date          DATETIME                    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_activity DATETIME                    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    body          TEXT                        NOT NULL,
+    image         VARCHAR(100)                         DEFAULT NULL,
+    id_user       INT                         NOT NULL,
 #     id_topic            INT                   DEFAULT NULL,
-    id_page      VARCHAR(100)                NOT NULL,
-    id_notes_div VARCHAR(50)                          DEFAULT NULL,
-    location     ENUM ('course', 'exercise') NOT NULL,
-    visible      BOOLEAN                              DEFAULT true,
-    locked       BOOLEAN                              DEFAULT false,
-    resolved     BOOLEAN                              DEFAULT false, -- Denormalized boolean to check if the question is resolved (not in use, check the answers instead)
+    id_page       VARCHAR(100)                NOT NULL,
+    id_notes_div  VARCHAR(50)                          DEFAULT NULL,
+    location      ENUM ('course', 'exercise') NOT NULL,
+    visible       BOOLEAN                              DEFAULT true,
+    locked        BOOLEAN                              DEFAULT false,
+    resolved      BOOLEAN                              DEFAULT false, -- Denormalized boolean to check if the question is resolved (not in use, check the answers instead)
+    html          BOOLEAN                              DEFAULT false,
 #    likes_count    INT                   DEFAULT 0,     -- Denormalized count of likes (not implemented yet)
 #    answers_count  INT                   DEFAULT 0,     -- Denormalized count of answers (not implemented yet)
     FOREIGN KEY (id_user) REFERENCES users (sciper)

@@ -22,6 +22,3 @@ This is a REST API for the Analysis I forum written in PHP.
     }
     ```
 7. Set the correct file permissions. Ensure that the web server has read access to the project files and write access to the folders where file uploads or caching might occur.
-
-## Diagram of the database
-![Diagram of the database](img/database_diagram.png)

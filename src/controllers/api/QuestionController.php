@@ -8,6 +8,7 @@
 namespace Controller\Api;
 
 use Model\QuestionModel;
+use Model\AnswerModel;
 use Users\UserPermissions;
 use Exception;
 
@@ -19,6 +20,7 @@ class QuestionController extends BaseController
      * @param string|null $divId The ID of the notes division (optional).
      * @param int|null $userId The ID of the user requesting the questions (optional).
      * @param bool $onlyUsersQuestions Whether to fetch only the questions of the given user (optional).
+     * @param bool $onlyBookmarkedQuestions Whether to fetch only the bookmarked questions of the given user (optional).
      * @param int|null $pageNumber The page number (optional).
      * @return void The HTTP code and the JSON data to the client.
      * @throws Exception
@@ -29,6 +31,7 @@ class QuestionController extends BaseController
         ?string $divId = null,
         ?int    $userId = null,
         bool    $onlyUsersQuestions = false,
+        bool    $onlyBookmarkedQuestions = false,
         ?int    $pageNumber = null): void
     {
         $questionsPerPage = 50;
@@ -38,7 +41,7 @@ class QuestionController extends BaseController
         $totalQuestions = $questionModel->countQuestions($pageId, $divId, $userId, $onlyUsersQuestions);
         $totalPages = ceil($totalQuestions / $questionsPerPage);
 
-        $result = $questionModel->getQuestions($pageId, $divId, $userId, $onlyUsersQuestions, $pageNumber, $questionsPerPage, $sort);
+        $result = $questionModel->getQuestions($pageId, $divId, $userId, $onlyUsersQuestions, $onlyBookmarkedQuestions, $pageNumber, $questionsPerPage, $sort);
 
         // Fetch all rows directly into an array
         $questions = $result->fetch_all(MYSQLI_ASSOC);
@@ -120,8 +123,8 @@ class QuestionController extends BaseController
 
         // Escape HTML entities in answers
         foreach ($response['question']['answers'] as &$answer) {
-            // If the role of the user is teacher, don't escape HTML entities
-            if ($answer['user_role'] !== 'teacher') {
+            // If the role of the user is teacher or user is admin, don't escape HTML entities
+            if ($answer['user_role'] !== 'teacher' && $answer['user_is_admin'] !== 1 && $answer['user_role'] !== 'llm') {
                 $answer['body'] = htmlspecialchars($answer['body']);
             }
         }
@@ -144,6 +147,12 @@ class QuestionController extends BaseController
     public
     function create(int $sciper): void
     {
+        // Check if the feature flag for new questions is enabled
+        $featureFlagsController = new FeatureFlagsController();
+        if (!$featureFlagsController->getFeatureFlag('newQuestion')) {
+            throw new Exception('The new question feature is disabled');
+        }
+
         // Check Content-Type
         if (!isset($_SERVER['CONTENT_TYPE']) || !str_contains($_SERVER['CONTENT_TYPE'], 'multipart/form-data')) {
             $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Content-Type must be multipart/form-data']);
@@ -168,21 +177,68 @@ class QuestionController extends BaseController
         $postData['page'] = str_replace('.html', '', $postData['page']);
 
         $questionModel = new QuestionModel();
-        $affectedRows = $questionModel->addQuestion(
+        $questionId = $questionModel->addQuestion(
             $postData['question-body'],
             $imageName,
             $sciper,
             $postData['page'],
             $postData['div-id'],
-            $postData['question-location']
+            $postData['question-location'],
         );
 
-        if ($affectedRows === 0) {
+        if (!$questionId) {
             $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Error while saving the question']);
             return;
         }
 
-        $this->sendOutput('HTTP/1.1 200 OK');
+        $this->sendOutput('HTTP/1.1 200 OK', exit: false);
+
+        // Execute the LLM processing asynchronously
+        if ($postData['page'] !== 'questions_generales_GM' && $postData['page'] !== 'questions_generales_OL') {
+            $this->executeLLMProcess($postData['page'], $postData['div-id'] ?? 'nan', $postData['question-body'], $questionId);
+        }
+
+        // Send the question to LLM and save response in the database (if the page is not questions_generales_GM or questions_generales_OL)
+        /*if ($postData['page'] !== 'questions_generales_GM' && $postData['page'] !== 'questions_generales_OL') {
+            $response = sendQuestionToLLM($postData['page'], $postData['div-id'], $postData['question-body']);
+            $response = json_decode($response, true);
+
+            // Save the answer in the database if it's not empty
+            if (!empty($response['answer'])) {
+                $answerModel = new AnswerModel();
+                $answerModel->addAnswer($response['answer'], 0, $questionId);
+            }
+        }*/
+    }
+
+    function sendQuestionToLLM(int $questionId): void
+    {
+        $questionModel = new QuestionModel();
+        $question = $questionModel->getQuestion($questionId)->fetch_assoc();
+        $this->executeLLMProcess($question['id_page'], $question['id_notes_div'] ?? 'nan', $question['body'], $questionId);
+    }
+
+    /**
+     * Execute the LLM processing task asynchronously.
+     *
+     * @param string $page
+     * @param string|null $divId
+     * @param string $questionBody
+     * @param int $questionId
+     * @return void
+     */
+    protected function executeLLMProcess(string $page, ?string $divId, string $questionBody, int $questionId): void
+    {
+        $command = sprintf(
+            'php %s/../../utils/process-LLM.php %s %s %s %d > /dev/null 2>&1 &',
+            __DIR__,
+            escapeshellarg($page),
+            escapeshellarg($divId),
+            escapeshellarg($questionBody),
+            $questionId
+        );
+
+        exec($command);
     }
 
     /**

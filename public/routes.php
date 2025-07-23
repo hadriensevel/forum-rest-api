@@ -8,6 +8,7 @@
 use Controller\Api\QuestionController;
 use Controller\Api\AnswerController;
 use Controller\Api\LikeController;
+use Controller\Api\BookmarkController;
 use Controller\Api\FeatureFlagsController;
 use Mailer\Mailer;
 
@@ -44,8 +45,9 @@ get(API_ROOT_URI . '/get-questions/my-questions', function () {
     setCorsHeaders();
     $pageNumber = $_GET['page'] ?? null;
     $sort = $_GET['sort'] ?? 'DATE';
+    $onlyBookmarkedQuestions = $_GET['bookmarked-questions'] ?? false;
     $user = getUserFromToken();
-    (new QuestionController())->fetchQuestions(sort: $sort, userId: $user['sciper'], onlyUsersQuestions: true, pageNumber: $pageNumber);
+    (new QuestionController())->fetchQuestions(sort: $sort, userId: $user['sciper'], onlyUsersQuestions: true, onlyBookmarkedQuestions: $onlyBookmarkedQuestions, pageNumber: $pageNumber);
 });
 
 // Get questions in a page
@@ -179,6 +181,20 @@ delete(API_ROOT_URI . '/like/remove-answer/$answerId', function ($answerId) {
     (new LikeController())->deleteLikeFromQuestion($answerId, $user['sciper'], isQuestion: false);
 });
 
+// Add a bookmark to a question
+post(API_ROOT_URI . '/bookmark/add/$questionId', function ($questionId) {
+    setCorsHeaders();
+    $user = getUserFromToken();
+    (new BookmarkController())->bookmarkQuestion($questionId, $user['sciper']);
+});
+
+// Remove a bookmark from a question
+delete(API_ROOT_URI . '/bookmark/remove/$questionId', function ($questionId) {
+    setCorsHeaders();
+    $user = getUserFromToken();
+    (new BookmarkController())->deleteBookmark($questionId, $user['sciper']);
+});
+
 // Feature flags routes
 get(API_ROOT_URI . '/feature-flags', function () {
     setCorsHeaders();
@@ -212,12 +228,32 @@ get('/auth/details', function () {
 
 // Scrape the sections of the lecture notes
 get('/admin/scrape-sections', function () {
-    scrapeSections('https://botafogo.saitis.net/analyse-1/');
+    scrapeSections('https://botafogo.epfl.ch/analyse-1/');
 });
 
 // Scrape the exercises
 get('/admin/scrape-exercises', function () {
-    scrapeSections('https://botafogo.saitis.net/analyse-1-GM/');
+    scrapeSections('https://botafogo.epfl.ch/analyse-1-GM/');
+});
+
+// Send question to LLM
+get('/admin/send-to-llm/$questionId', function ($questionId) {
+    // Check if there's a token cookie
+    $token = $_COOKIE['token'] ?? null;
+    // If there's a token, get the user details
+    if ($token) {
+        $user = getUserDetails($token);
+        // If the user is not an admin, display an error message
+        if (!$user['is_admin']) {
+            echo 'You are not authorized to access this page.';
+            exit();
+        }
+    } else {
+        // If there's no token, redirect to the login page
+        header('Location: /auth/login?redirect=/admin/send-question-to-llm/' . $questionId);
+    }
+    (new QuestionController())->sendQuestionToLLM($questionId);
+    echo 'La question ' . $questionId . ' a été envoyée au LLM.';
 });
 
 // Respond to preflights

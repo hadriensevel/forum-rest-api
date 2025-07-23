@@ -72,17 +72,4 @@ class LikeModel extends DatabaseModel
         $params = array($userID, $itemID);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }
-
-    /**
-     * MySQL query to get the list of the likes of a user
-     * @param int $userID
-     * @return false|mysqli_result
-     * @throws Exception
-     */
-    public function getLikes(int $userID): false|mysqli_result
-    {
-        $query = "SELECT $this->id FROM $this->table WHERE id_user = ?";
-        $params = array($userID);
-        return $this->createAndRunPreparedStatement($query, $params);
-    }
 }

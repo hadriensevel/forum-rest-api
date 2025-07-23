@@ -40,6 +40,12 @@ function scrapeSections(string $url): void
         $lastPart = end($parts);
         $sectionId = str_replace('.html', '', $lastPart);
 
+        // Check if the section ID starts with "AN-" followed by a year
+        if (preg_match('/AN-(\d{4})/', $sectionId, $matches)) {
+            $year = $matches[1]; // Extract the year
+            $name = 'Examen ' . $year . ' - ' . $name;
+        }
+
         $sectionModel->addSection($sectionId, $name);
         echo $name . ' ' . $sectionId . '<br>';
     }

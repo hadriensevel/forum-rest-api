@@ -5,31 +5,60 @@
  * File: BookmarkController.php
  */
 
-/* BOOKMARKS ARE NOT IN USE FOR NOW */
+namespace Controller\Api;
 
-//namespace Controller\Api;
-//
-//use Model\BookmarkModel;
-//use Model\QuestionModel;
-//
-//class BookmarkController extends BaseController
-//{
-//    public function bookmarkToggle(int $idQuestion): void
-//    {
-//        $bookmarkModel = new BookmarkModel();
-//        $questionModel = new QuestionModel();
-//        $question = $questionModel->getQuestion($idQuestion);
-//        if ($question->num_rows === 0) {
-//            // question not found
-//        }
-//        $question = $question->fetch_assoc();
-//        if ($bookmarkModel->questionBookmarked($this->user->sciper, $idQuestion)) {
-//            $bookmarkModel->deleteBookmark($this->user->sciper, $idQuestion);
-//            $this->sendSuccess("Question unbookmarked");
-//        } else {
-//            $bookmarkModel->bookmarkQuestion($this->user->sciper, $idQuestion);
-//            $this->sendSuccess("Question bookmarked");
-//        }
-//    }
-//
-//}
+use Model\BookmarkModel;
+use Exception;
+
+class BookmarkController extends BaseController
+{
+    /**
+     * Add a bookmark to a question.
+     * @param int $questionID
+     * @param int $userID
+     * @return void
+     * @throws Exception
+     */
+    public function bookmarkQuestion(int $questionID, int $userID): void
+    {
+        $bookmarkModel = new BookmarkModel();
+
+        if ($bookmarkModel->checkBookmark($userID, $questionID)) {
+            $this->sendOutput(
+                'HTTP/1.1 400 Bad Request',
+                ['message' => 'User has already bookmarked this question']
+            );
+            return;
+        }
+
+        if ($bookmarkModel->addBookmark($userID, $questionID)) {
+            $this->sendOutput('HTTP/1.1 200 OK');
+        } else {
+            $this->sendOutput(
+                'HTTP/1.1 400 Bad Request',
+                ['message' => 'Wrong question ID or user ID']
+            );
+        }
+    }
+
+    /**
+     * Delete a bookmark from a question.
+     * @param int $questionID
+     * @param int $userID
+     * @return void
+     * @throws Exception
+     */
+    public function deleteBookmark(int $questionID, int $userID): void
+    {
+        $bookmarkModel = new BookmarkModel();
+
+        if ($bookmarkModel->deleteBookmark($userID, $questionID)) {
+            $this->sendOutput('HTTP/1.1 200 OK');
+        } else {
+            $this->sendOutput(
+                'HTTP/1.1 400 Bad Request',
+                ['message' => 'Wrong question ID or user ID']
+            );
+        }
+    }
+}

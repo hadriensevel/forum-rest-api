@@ -46,7 +46,7 @@ class Mailer
 
     /**
      * Send a new answer notification.
-     * @param string $section
+     * @param string|null $section
      * @param int $questionId
      * @param string $email The email address of the user who asked the question.
      * @return void
@@ -87,10 +87,11 @@ class Mailer
      * @param array $recipients An array of email addresses.
      * @param string $subject The subject of the email.
      * @param string $body The body of the email.
+     * @param string|null $attachment (optional) The path to the attachment.
      * @return void
      * @throws Exception
      */
-    public function sendEmail(array $recipients, string $subject, string $body): void
+    public function sendEmail(array $recipients, string $subject, string $body, ?string $attachment = null): void
     {
         try {
             // Recipients
@@ -104,6 +105,10 @@ class Mailer
             // Content of the email
             $this->mailer->Subject = $subject;
             $this->mailer->Body = $body;
+
+            if ($attachment) {
+                $this->mailer->addAttachment($attachment);
+            }
 
             // Send the email
             $this->mailer->send();

@@ -36,4 +36,27 @@ class FeatureFlagsController extends BaseController
 
         $this->sendOutput('HTTP/1.1 200 OK', $response);
     }
+
+    /**
+     * Get the feature flag with the given name
+     * @param string $name The name of the feature flag
+     * @return bool The value of the feature flag
+     * @throws Exception
+     */
+    public function getFeatureFlag(string $name): bool
+    {
+        // Create an instance of the model
+        $featureFlagsModel = new FeatureFlagsModel();
+
+        // Fetch feature flags from the model
+        $result = $featureFlagsModel->getFeatureFlag($name);
+
+        // Get the value of the feature flag
+        if ($result && $result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            return $row['enabled'] === 1;
+        }
+
+        return false;
+    }
 }

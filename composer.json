@@ -27,7 +27,8 @@
       "src/utils/serve-file.php",
       "src/utils/generate-preview.php",
       "src/utils/handle-image.php",
-      "src/utils/scrape-sections.php"
+      "src/utils/scrape-sections.php",
+      "src/utils/send-question-to-LLM.php"
     ]
   }
 }

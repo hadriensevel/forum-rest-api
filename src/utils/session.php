@@ -9,7 +9,7 @@
 session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',
-    'domain' => DOMAIN,
+    //'domain' => DOMAIN,
     'secure' => true,
     'httponly' => true,
     'samesite' => 'None'

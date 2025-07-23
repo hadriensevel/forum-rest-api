@@ -38,11 +38,12 @@ class BaseController
 
     /**
      * Return the HTTP code and the JSON data to the client
-     * @param array $data
      * @param string $httpResponseCode
+     * @param array $data
+     * @param bool $exit
      * @return void
      */
-    protected function sendOutput(string $httpResponseCode, array $data = array()): void
+    protected function sendOutput(string $httpResponseCode, array $data = array(), bool $exit = true): void
     {
         header_remove('Set-Cookie');
         header('Content-Type: application/json; charset=utf-8');
@@ -50,6 +51,6 @@ class BaseController
         if (!empty($data)) {
             echo json_encode($data, JSON_UNESCAPED_UNICODE);
         }
-        exit;
+        if ($exit) exit;
     }
 }

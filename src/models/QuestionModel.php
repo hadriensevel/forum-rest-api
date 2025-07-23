@@ -19,6 +19,7 @@ class QuestionModel extends DatabaseModel
      * @param string|null $divId The ID of the notes division (optional).
      * @param int|null $userId The ID of the user requesting the questions (optional).
      * @param bool $onlyUsersQuestions Whether to only get the questions of the user (optional).
+     * @param bool $onlyBookmarkedQuestions Whether to only get the bookmarked questions of the user (optional).
      * @param int|null $pageNumber The page number (optional).
      * @param int|null $questionsPerPage The number of questions per page (optional).
      * @param string $sortBy The sorting method (optional).
@@ -30,6 +31,7 @@ class QuestionModel extends DatabaseModel
         ?string $divId = null,
         ?int    $userId = null,
         bool    $onlyUsersQuestions = false,
+        bool    $onlyBookmarkedQuestions = false,
         ?int    $pageNumber = null,
         ?int    $questionsPerPage = null,
         string  $sortBy = 'date'): false|mysqli_result
@@ -39,7 +41,7 @@ class QuestionModel extends DatabaseModel
         $query = "
         SELECT 
             {{questions}}.id AS id,
-            date,
+            {{questions}}.date,
             last_activity,
             body,
             IF(COUNT(DISTINCT acceptedAnswers.id) > 0, TRUE, {{questions}}.resolved) AS resolved,
@@ -76,6 +78,16 @@ class QuestionModel extends DatabaseModel
         ) acceptedAnswers ON {{questions}}.id = acceptedAnswers.id_parent_question
         LEFT JOIN {{sections}}
         ON {{questions}}.id_page = {{sections}}.id_section
+        LEFT JOIN (
+            SELECT a.id_parent_question, a.date, u.role
+            FROM {{answers}} a
+            INNER JOIN {{users}} u ON a.id_user = u.sciper
+            WHERE a.id IN (
+                SELECT MAX(id)
+                FROM {{answers}}
+                GROUP BY id_parent_question
+            )
+        ) la ON {{questions}}.id = la.id_parent_question
         WHERE visible = true";
 
         if ($pageId !== null) {
@@ -86,8 +98,12 @@ class QuestionModel extends DatabaseModel
             $query .= " AND id_notes_div = ?";
             $params[] = $divId;
         }
-        if ($userId !== null && $onlyUsersQuestions) {
+        if ($userId !== null && $onlyUsersQuestions && !$onlyBookmarkedQuestions) {
             $query .= " AND {{questions}}.id_user = ?";
+            $params[] = $userId;
+        }
+        if ($userId !== null && $onlyBookmarkedQuestions) {
+            $query .= " AND {{questions}}.id IN (SELECT id_question FROM {{bookmarks}} WHERE id_user = ?)";
             $params[] = $userId;
         }
 
@@ -95,13 +111,14 @@ class QuestionModel extends DatabaseModel
 
         // Dynamic ORDER BY clause
         $query .= match ($sortBy) {
-            'likes' => " ORDER BY likes DESC, date DESC",
-            'resolved' => " ORDER BY resolved DESC, date DESC",
-            'non-resolved' => " ORDER BY resolved ASC, date DESC",
-            'answers' => " ORDER BY answers DESC, date DESC",
-            'no-answer' => " ORDER BY answers ASC, date DESC",
-            'last-activity' => " ORDER BY last_activity DESC, date DESC",
-            default => " ORDER BY date DESC",
+            'likes' => " ORDER BY likes DESC, {{questions}}.date DESC",
+            'resolved' => " ORDER BY resolved DESC, {{questions}}.date DESC",
+            'non-resolved' => " ORDER BY resolved ASC, {{questions}}.date DESC",
+            'answers' => " ORDER BY answers DESC, {{questions}}.date DESC",
+            'no-answer' => " ORDER BY answers ASC, {{questions}}.date DESC",
+            //'last-activity' => " ORDER BY last_activity DESC, date DESC",
+            'last-activity' => " ORDER BY CASE WHEN la.role = 'student' THEN 0 ELSE 1 END, la.date DESC, {{questions}}.date DESC",
+            default => " ORDER BY {{questions}}.date DESC",
         };
 
         // Add the LIMIT and OFFSET clauses to implement pagination
@@ -219,11 +236,12 @@ class QuestionModel extends DatabaseModel
             html,
             {{sections}}.name AS section_name";
 
-        // Add user_is_author and user_liked part if userId is not null
+        // Add user_is_author, user_liked, and user_bookmarked part if userId is not null
         if ($userId !== null) {
             $questionQuery .= ",
             CASE WHEN {{questions}}.id_user = ? THEN TRUE ELSE FALSE END AS user_is_author,
-            CASE WHEN user_likes.id_user IS NOT NULL THEN TRUE ELSE FALSE END AS user_liked";
+            CASE WHEN user_likes.id_user IS NOT NULL THEN TRUE ELSE FALSE END AS user_liked,
+            CASE WHEN user_bookmarks.id_user IS NOT NULL THEN TRUE ELSE FALSE END AS user_bookmarked";
         }
 
         $questionQuery .= "
@@ -239,12 +257,14 @@ class QuestionModel extends DatabaseModel
         if ($userId !== null) {
             $questionQuery .= "
             LEFT JOIN {{likes_questions}} AS user_likes
-            ON {{questions}}.id = user_likes.id_question AND user_likes.id_user = ?";
+            ON {{questions}}.id = user_likes.id_question AND user_likes.id_user = ?
+            LEFT JOIN {{bookmarks}} AS user_bookmarks
+            ON {{questions}}.id = user_bookmarks.id_question AND user_bookmarks.id_user = ?";
         }
 
         $questionQuery .= " WHERE {{questions}}.id = ?";
 
-        if ($userId) $questionParams = array($userId, $userId, $questionId);
+        if ($userId) $questionParams = array($userId, $userId, $userId, $questionId);
         else $questionParams = array($questionId);
 
         $questionResult = $this->createAndRunPreparedStatement($questionQuery, $questionParams);
@@ -263,7 +283,9 @@ class QuestionModel extends DatabaseModel
             body,
             accepted,
             IFNULL(l.likes, 0) AS likes,
-            {{users}}.role as user_role";
+            {{users}}.role as user_role,
+            {{users}}.is_admin as user_is_admin,
+            {{users}}.endorsed_assistant as endorsed_assistant";
 
         // Add user_is_author and user_liked if userId is not null
         if ($userId !== null) {
@@ -292,6 +314,11 @@ class QuestionModel extends DatabaseModel
         }
 
         $answersQuery .= " WHERE id_parent_question = ?";
+
+        $answersQuery .= "
+        ORDER BY 
+            CASE WHEN user_role = 'llm' THEN 1 ELSE 0 END ASC,
+            date ASC";
 
         if ($userId) $answersParams = array($userId, $questionId, $userId, $questionId);
         else $answersParams = array($questionId, $questionId);
@@ -329,7 +356,7 @@ class QuestionModel extends DatabaseModel
     {
         $query = "INSERT INTO {{questions}} (body, image, id_user, id_page, id_notes_div, location) VALUES (?, ?, ?, ?, ?, ?)";
         $params = array($body, $image, $sciper, $page, $divId, $location);
-        return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
+        return $this->createAndRunPreparedStatement($query, $params, returnId: true);
     }
 
     /**
@@ -421,6 +448,13 @@ class QuestionModel extends DatabaseModel
         $query = "UPDATE {{questions}} SET last_activity = CURRENT_TIMESTAMP WHERE id = ?";
         $params = array($id);
         return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
+    }
+
+    public function getQuestion(int $id): false|mysqli_result
+    {
+        $query = "SELECT body, id_page, id_notes_div FROM {{questions}} WHERE id = ?";
+        $params = array($id);
+        return $this->createAndRunPreparedStatement($query, $params);
     }
 
 }

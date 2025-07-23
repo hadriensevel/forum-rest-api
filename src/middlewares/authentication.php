@@ -25,10 +25,14 @@ function authenticate(string $appName): string
     // Set Tequila parameters
     $tequila->setApplicationName($appName);
     $tequila->setWantedAttributes(['displayname', 'email', 'uniqueid']);
-    $tequila->setAllowsFilter('org=epfl');
 
     // Call the authenticate function
-    return $tequila->authenticate();
+    $token = $tequila->authenticate();
+
+    // Also store the token in a secure cookie if it's not empty
+    if (!empty($token)) setcookie('token', $token, 0, '/', '', true, true);
+
+    return $token;
 }
 
 /**
@@ -79,6 +83,9 @@ function sendUserDetails(string $token): void
  */
 function logout(string $redirectURL = ''): void
 {
+    // Delete the token cookie
+    setcookie('token', '', time() - 3600, '/', '', true, true);
+
     // Create an instance of the TequilaClient class
     $tequila = new TequilaClientJWT();
 

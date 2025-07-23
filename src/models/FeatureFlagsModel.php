@@ -22,4 +22,16 @@ class FeatureFlagsModel extends DatabaseModel
         return $this->createAndRunPreparedStatement($query);
     }
 
+    /**
+     * Get the feature flag with the given name
+     * @param string $name The name of the feature flag
+     * @return false|mysqli_result
+     * @throws Exception
+     */
+    public function getFeatureFlag(string $name): false|mysqli_result
+    {
+        $query = "SELECT * FROM {{feature_flags}} WHERE name = ?";
+        return $this->createAndRunPreparedStatement($query, [$name]);
+    }
+
 }

@@ -6,6 +6,7 @@
  */
 
 namespace Model;
+
 use Exception;
 use Mysqli;
 use mysqli_result;
@@ -13,6 +14,17 @@ use mysqli_stmt;
 
 class DatabaseModel
 {
+    private array $replacements = [
+        '{{questions}}' => DB_PREFIX . 'questions',
+        '{{answers}}' => DB_PREFIX . 'answers',
+        '{{likes_questions}}' => DB_PREFIX . 'likes_questions',
+        '{{likes_answers}}' => DB_PREFIX . 'likes_answers',
+        '{{users}}' => DB_PREFIX . 'users',
+        '{{feature_flags}}' => DB_PREFIX . 'feature_flags',
+        '{{sections}}' => DB_PREFIX . 'sections',
+        '{{bookmarks}}' => DB_PREFIX . 'bookmarks',
+    ];
+
     protected ?mysqli $connection = null;
 
     /**
@@ -74,17 +86,7 @@ class DatabaseModel
      */
     function prepareQuery(string $query): string
     {
-        $replacements = [
-            '{{questions}}' => DB_PREFIX . 'questions',
-            '{{answers}}' => DB_PREFIX . 'answers',
-            '{{likes_questions}}' => DB_PREFIX . 'likes_questions',
-            '{{likes_answers}}' => DB_PREFIX . 'likes_answers',
-            '{{users}}' => DB_PREFIX . 'users',
-            '{{feature_flags}}' => DB_PREFIX . 'feature_flags',
-            '{{sections}}' => DB_PREFIX . 'sections',
-        ];
-
-        return str_replace(array_keys($replacements), array_values($replacements), $query);
+        return str_replace(array_keys($this->replacements), array_values($this->replacements), $query);
     }
 
     /**
@@ -92,11 +94,12 @@ class DatabaseModel
      * @param string $query
      * @param array $params
      * @param bool $returnAffectedRows
+     * @param bool $returnId
      * @return false|mysqli_result|int
      * @throws Exception
      */
     public function createAndRunPreparedStatement(string $query, array $params = array(),
-                                                  bool   $returnAffectedRows = false): false|mysqli_result|int
+                                                  bool   $returnAffectedRows = false, bool $returnId = false): false|mysqli_result|int
     {
         $query = $this->prepareQuery($query);
         $statement = $this->executeStatement($query, $params);
@@ -105,6 +108,10 @@ class DatabaseModel
             $affectedRows = $statement->affected_rows;
             $statement->close();
             return $affectedRows;
+        } elseif ($returnId) {
+            $id = $this->connection->insert_id;
+            $statement->close();
+            return $id;
         } else {
             $statement->close();
             return $result;

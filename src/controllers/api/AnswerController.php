@@ -50,6 +50,7 @@ class AnswerController extends BaseController
      */
     public function addAnswerToQuestion(int $sciper): void
     {
+        // Check content type
         if (!isset($_SERVER['CONTENT_TYPE']) || !str_contains($_SERVER['CONTENT_TYPE'], 'multipart/form-data')) {
             $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Content-Type must be multipart/form-data']);
             return;

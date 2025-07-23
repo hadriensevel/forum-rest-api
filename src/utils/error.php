@@ -19,6 +19,19 @@ ini_set('display_errors', 0);
 function errorHandler($error): void
 {
     $errorId = uniqid('error_');
+    $logFile = __DIR__ . '/../../logs/error.log'; // Path to the error log file
+
+    // Format the error details for logging
+    $errorDetails = [
+        'errorId' => $errorId,
+        'timestamp' => date('Y-m-d H:i:s'),
+        'error' => $error,
+    ];
+    $logMessage = json_encode($errorDetails, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+    // Log the error to a file
+    file_put_contents($logFile, $logMessage . PHP_EOL, FILE_APPEND);
+
     if (API_DEBUG) {
         header('HTTP/1.1 500 Internal Server Error');
         echo '<pre>';

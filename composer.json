@@ -1,21 +1,21 @@
 {
   "require": {
-    "phpmailer/phpmailer": "^6.8",
-    "firebase/php-jwt": "^6.8",
+    "phpmailer/phpmailer": "^6.10",
+    "firebase/php-jwt": "^6.11",
     "ext-mysqli": "*",
     "ext-curl": "*",
     "ext-fileinfo": "*",
     "ext-imap": "*",
     "ext-dom": "*",
-    "ext-libxml": "*"
+    "ext-libxml": "*",
+    "jumbojett/openid-connect-php": "^1.0"
   },
   "autoload": {
     "classmap": [
       "src/controllers",
       "src/models",
       "src/mailer",
-      "src/users",
-      "src/exceptions"
+      "src/users"
     ],
     "files": [
       "config/config.php",

@@ -10,7 +10,7 @@ use Controller\Api\AnswerController;
 use Controller\Api\LikeController;
 use Controller\Api\BookmarkController;
 use Controller\Api\FeatureFlagsController;
-use Mailer\Mailer;
+//use Mailer\Mailer;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -203,27 +203,27 @@ get(API_ROOT_URI . '/feature-flags', function () {
 
 // Authentication routes
 get('/auth/login', function () {
-    $redirectUrl = (isset($_GET['redirect']) && $_GET['redirect']) ? $_GET['redirect'] : '/';
-    $token = authenticate('Analyse I S. Friedli');
-    // Create the redirect URL with the token (depends on if the redirect URL already has a query string)
-    if (str_contains($redirectUrl, '?')) {
-        $redirectUrl .= '&token=' . $token;
-    } else {
-        $redirectUrl .= '?token=' . $token;
-    }
-
-    header('Location: ' . $redirectUrl);
+    authenticate();
 });
 
 get('/auth/logout', function () {
-    $redirectUrl = (isset($_GET['redirect']) && $_GET['redirect']) ? $_GET['redirect'] : '';
-    logout($redirectUrl);
+    logout();
 });
 
-get('/auth/details', function () {
+post('/auth/validate', function () {
     setCorsHeaders();
-    $token = getTokenOrDie();
-    sendUserDetails($token);
+    validateToken();
+});
+
+post('/auth/refresh', function () {
+    setCorsHeaders();
+    try {
+        $newToken = refreshToken();
+        echo json_encode(['token' => $newToken]);
+    } catch (Exception $e) {
+        http_response_code(401);
+        echo json_encode(['error' => $e->getMessage()]);
+    }
 });
 
 // Scrape the sections of the lecture notes

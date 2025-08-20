@@ -97,17 +97,3 @@ class SessionModel extends DatabaseModel
         $this->createAndRunPreparedStatement($query, $params);
     }
 }
-
-/*
- CREATE TABLE dev_sessions (
-    id VARCHAR(64) PRIMARY KEY,
-    user_sciper int(11) NOT NULL,
-    user_display_name VARCHAR(255) NOT NULL,
-    user_email VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP NOT NULL,
-    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_expires_at (expires_at),
-    INDEX idx_user_sciper (user_sciper)
-);
- */

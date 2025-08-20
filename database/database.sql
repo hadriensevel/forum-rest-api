@@ -16,7 +16,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `h187m8_botafogo`
+-- Database: `botafogo`
 --
 
 -- --------------------------------------------------------
@@ -116,6 +116,22 @@ CREATE TABLE `dev_sections` (
   `id_section` varchar(100) NOT NULL,
   `name` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `dev_sessions`
+--
+
+CREATE TABLE `dev_sessions` (
+  `id` varchar(64) NOT NULL,
+  `user_sciper` int(11) NOT NULL,
+  `user_display_name` varchar(255) NOT NULL,
+  `user_email` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `expires_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `last_activity` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 -- --------------------------------------------------------
 
@@ -233,6 +249,22 @@ CREATE TABLE `prod_sections` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `prod_sessions`
+--
+
+CREATE TABLE `prod_sessions` (
+  `id` varchar(64) NOT NULL,
+  `user_sciper` int(11) NOT NULL,
+  `user_display_name` varchar(255) NOT NULL,
+  `user_email` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `expires_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `last_activity` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `prod_users`
 --
 
@@ -303,6 +335,14 @@ ALTER TABLE `dev_sections`
   ADD PRIMARY KEY (`id_section`);
 
 --
+-- Indexes for table `dev_sessions`
+--
+ALTER TABLE `dev_sessions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_expires_at` (`expires_at`),
+  ADD KEY `idx_user_sciper` (`user_sciper`);
+
+--
 -- Indexes for table `dev_users`
 --
 ALTER TABLE `dev_users`
@@ -360,6 +400,14 @@ ALTER TABLE `prod_questions`
 --
 ALTER TABLE `prod_sections`
   ADD PRIMARY KEY (`id_section`);
+
+--
+-- Indexes for table `prod_sessions`
+--
+ALTER TABLE `prod_sessions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_expires_at` (`expires_at`),
+  ADD KEY `idx_user_sciper` (`user_sciper`);
 
 --
 -- Indexes for table `prod_users`

@@ -241,6 +241,7 @@ class QuestionModel extends DatabaseModel
             locked,
             resolved,
             html,
+            llm_training AS marked_for_llm_training,
             {{sections}}.name AS section_name";
 
         // Add user_is_author, user_liked, and user_bookmarked part if userId is not null
@@ -462,6 +463,20 @@ class QuestionModel extends DatabaseModel
         $query = "SELECT body, id_page, id_notes_div FROM {{questions}} WHERE id = ?";
         $params = array($id);
         return $this->createAndRunPreparedStatement($query, $params);
+    }
+
+    /**
+     * Mark or unmark a question for LLM training
+     * @param int $id The ID of the question
+     * @param bool $marked Whether to mark (true) or unmark (false) for training
+     * @return int Number of affected rows
+     * @throws Exception
+     */
+    public function markQuestionForLLMTraining(int $id, bool $marked): int
+    {
+        $query = "UPDATE {{questions}} SET llm_training = ? WHERE id = ?";
+        $params = array($marked ? 1 : 0, $id);
+        return $this->createAndRunPreparedStatement($query, $params, returnAffectedRows: true);
     }
 
 }

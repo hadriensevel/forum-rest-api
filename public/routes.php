@@ -10,6 +10,7 @@ use Controller\Api\AnswerController;
 use Controller\Api\LikeController;
 use Controller\Api\BookmarkController;
 use Controller\Api\FeatureFlagsController;
+use Controller\Api\AdminController;
 //use Mailer\Mailer;
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -111,6 +112,20 @@ post(API_ROOT_URI . '/question/unlock/$id', function ($id) {
     setCorsHeaders();
     $user = getUserFromToken();
     (new QuestionController())->lock($id, $user, lock: false);
+});
+
+// Mark a question for LLM training
+post(API_ROOT_URI . '/question/mark-llm-training/$id', function ($id) {
+    setCorsHeaders();
+    $user = getUserFromToken();
+    (new QuestionController())->markQuestionForLLMTraining($id, $user);
+});
+
+// Unmark a question for LLM training
+post(API_ROOT_URI . '/question/unmark-llm-training/$id', function ($id) {
+    setCorsHeaders();
+    $user = getUserFromToken();
+    (new QuestionController())->unmarkQuestionForLLMTraining($id, $user);
 });
 
 // Add an answer to a question
@@ -254,6 +269,139 @@ get('/admin/send-to-llm/$questionId', function ($questionId) {
     }
     (new QuestionController())->sendQuestionToLLM($questionId);
     echo 'La question ' . $questionId . ' a été envoyée au LLM.';
+});
+
+// Admin dashboard for feature flags
+get('/admin/dashboard', function () {
+    // Check for token in URL parameter first (for direct browser access), then header
+    $token = $_GET['token'] ?? null;
+    if (!$token) {
+        try {
+            $user = getUserFromToken(enforceToken: false);
+            if (!$user) {
+                // No token found, redirect to login
+                header('Location: /auth/login?redirect=/admin/dashboard');
+                exit();
+            }
+        } catch (Exception $e) {
+            // Invalid token, redirect to login
+            header('Location: /auth/login?redirect=/admin/dashboard');
+            exit();
+        }
+    } else {
+        // Token provided as URL parameter
+        try {
+            $user = getUserDetails($token);
+        } catch (Exception $e) {
+            // Invalid token, redirect to login
+            header('Location: /auth/login?redirect=/admin/dashboard');
+            exit();
+        }
+    }
+    
+    // Double-check admin status with fresh database lookup to prevent JWT caching issues
+    $userController = new \Controller\Api\UserController();
+    $freshUserData = $userController->getUserDetails($user['sciper'], $user['name'], '', true);
+    
+    if (!$freshUserData['is_admin']) {
+        echo 'You are not authorized to access this page.';
+        exit();
+    }
+    
+    (new AdminController())->dashboard($token);
+});
+
+
+// Toggle feature flag (AJAX endpoint)
+post('/admin/toggle-feature-flag', function () {
+    setCorsHeaders();
+    try {
+        $user = getUserFromToken();
+        
+        // Double-check admin status with fresh database lookup to prevent JWT caching issues
+        $userController = new \Controller\Api\UserController();
+        $freshUserData = $userController->getUserDetails($user['sciper'], $user['name'], '', true);
+        
+        if (!$freshUserData['is_admin']) {
+            http_response_code(403);
+            echo json_encode(['error' => 'You are not authorized to perform this action.']);
+            exit();
+        }
+        
+        (new AdminController())->toggleFeatureFlag();
+    } catch (Exception $e) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Authentication required.']);
+    }
+});
+
+// Toggle endorsed assistant status (AJAX endpoint)
+post('/admin/toggle-endorsed-assistant', function () {
+    setCorsHeaders();
+    try {
+        $user = getUserFromToken();
+        
+        // Double-check admin status with fresh database lookup to prevent JWT caching issues
+        $userController = new \Controller\Api\UserController();
+        $freshUserData = $userController->getUserDetails($user['sciper'], $user['name'], '', true);
+        
+        if (!$freshUserData['is_admin']) {
+            http_response_code(403);
+            echo json_encode(['error' => 'You are not authorized to perform this action.']);
+            exit();
+        }
+        
+        (new AdminController())->toggleEndorsedAssistant();
+    } catch (Exception $e) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Authentication required.']);
+    }
+});
+
+// Add assistant (AJAX endpoint)
+post('/admin/add-assistant', function () {
+    setCorsHeaders();
+    try {
+        $user = getUserFromToken();
+        
+        // Double-check admin status with fresh database lookup to prevent JWT caching issues
+        $userController = new \Controller\Api\UserController();
+        $freshUserData = $userController->getUserDetails($user['sciper'], $user['name'], '', true);
+        
+        if (!$freshUserData['is_admin']) {
+            http_response_code(403);
+            echo json_encode(['error' => 'You are not authorized to perform this action.']);
+            exit();
+        }
+        
+        (new AdminController())->addAssistant();
+    } catch (Exception $e) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Authentication required.']);
+    }
+});
+
+// Remove assistant (AJAX endpoint)
+post('/admin/remove-assistant', function () {
+    setCorsHeaders();
+    try {
+        $user = getUserFromToken();
+        
+        // Double-check admin status with fresh database lookup to prevent JWT caching issues
+        $userController = new \Controller\Api\UserController();
+        $freshUserData = $userController->getUserDetails($user['sciper'], $user['name'], '', true);
+        
+        if (!$freshUserData['is_admin']) {
+            http_response_code(403);
+            echo json_encode(['error' => 'You are not authorized to perform this action.']);
+            exit();
+        }
+        
+        (new AdminController())->removeAssistant();
+    } catch (Exception $e) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Authentication required.']);
+    }
 });
 
 // Respond to preflights

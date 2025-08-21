@@ -103,7 +103,8 @@ CREATE TABLE `dev_questions` (
   `visible` tinyint(1) DEFAULT 1,
   `locked` tinyint(1) DEFAULT 0,
   `resolved` tinyint(1) DEFAULT 0,
-  `html` tinyint(1) DEFAULT 0
+  `html` tinyint(1) DEFAULT 0,
+  `llm_training` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -232,7 +233,8 @@ CREATE TABLE `prod_questions` (
   `visible` tinyint(1) DEFAULT 1,
   `locked` tinyint(1) DEFAULT 0,
   `resolved` tinyint(1) DEFAULT 0,
-  `html` tinyint(1) DEFAULT 0
+  `html` tinyint(1) DEFAULT 0,
+  `llm_training` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------

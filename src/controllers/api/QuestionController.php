@@ -361,4 +361,52 @@ class QuestionController extends BaseController
             );
         }
     }
+
+    /**
+     * Mark a question for LLM training
+     * @param int $id The ID of the question to mark
+     * @param array $user The user details
+     * @return void
+     * @throws Exception
+     */
+    public function markQuestionForLLMTraining(int $id, array $user): void
+    {
+        // Authorization check
+        if (!UserPermissions::canMarkForLLMTraining($user['is_admin'])) {
+            $this->sendOutput('HTTP/1.1 403 Forbidden', ['error' => 'The user is not authorized to mark questions for LLM training']);
+            return;
+        }
+
+        $questionModel = new QuestionModel();
+        
+        if ($questionModel->markQuestionForLLMTraining($id, true)) {
+            $this->sendOutput('HTTP/1.1 200 OK', ['message' => 'Question marked for LLM training']);
+        } else {
+            $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Invalid question ID or question already marked']);
+        }
+    }
+
+    /**
+     * Unmark a question for LLM training
+     * @param int $id The ID of the question to unmark
+     * @param array $user The user details
+     * @return void
+     * @throws Exception
+     */
+    public function unmarkQuestionForLLMTraining(int $id, array $user): void
+    {
+        // Authorization check
+        if (!UserPermissions::canMarkForLLMTraining($user['is_admin'])) {
+            $this->sendOutput('HTTP/1.1 403 Forbidden', ['error' => 'The user is not authorized to unmark questions for LLM training']);
+            return;
+        }
+
+        $questionModel = new QuestionModel();
+        
+        if ($questionModel->markQuestionForLLMTraining($id, false)) {
+            $this->sendOutput('HTTP/1.1 200 OK', ['message' => 'Question unmarked for LLM training']);
+        } else {
+            $this->sendOutput('HTTP/1.1 400 Bad Request', ['error' => 'Invalid question ID or question already unmarked']);
+        }
+    }
 }

@@ -48,12 +48,26 @@ class UserController extends BaseController
      * Add a user to the database
      * @param int $sciper
      * @param string $email
+     * @param string $role User role (student, assistant, teacher, llm)
      * @return void
      * @throws Exception
      */
-    public function addUser(int $sciper, string $email): void
+    public function addUser(int $sciper, string $email, string $role = 'student'): void
     {
         $userModel = new UserModel();
-        $userModel->addUser($sciper, $email);
+        $userModel->addUser($sciper, $email, $role);
+    }
+
+    /**
+     * Update a user's role in the database
+     * @param int $sciper
+     * @param string $role New role (student, assistant, teacher, llm)
+     * @return void
+     * @throws Exception
+     */
+    public function updateUserRole(int $sciper, string $role): void
+    {
+        $userModel = new UserModel();
+        $userModel->updateUserRole($sciper, $role);
     }
 }

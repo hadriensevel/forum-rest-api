@@ -34,4 +34,17 @@ class FeatureFlagsModel extends DatabaseModel
         return $this->createAndRunPreparedStatement($query, [$name]);
     }
 
+    /**
+     * Toggle a feature flag (enable/disable)
+     * @param string $name The name of the feature flag
+     * @param bool $enabled Whether the flag should be enabled
+     * @return int Number of affected rows
+     * @throws Exception
+     */
+    public function toggleFeatureFlag(string $name, bool $enabled): int
+    {
+        $query = "UPDATE {{feature_flags}} SET enabled = ? WHERE name = ?";
+        return $this->createAndRunPreparedStatement($query, [$enabled ? 1 : 0, $name], returnAffectedRows: true);
+    }
+
 }

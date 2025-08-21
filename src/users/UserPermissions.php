@@ -42,4 +42,9 @@ class UserPermissions
     {
         return $isAdmin || $userRole === self::TEACHER || $userRole === self::ASSISTANT;
     }
+
+    public static function canMarkForLLMTraining(bool $isAdmin): bool
+    {
+        return $isAdmin;
+    }
 }

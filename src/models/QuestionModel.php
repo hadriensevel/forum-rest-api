@@ -50,7 +50,8 @@ class QuestionModel extends DatabaseModel
             locked,
             location,
             html,
-            {{sections}}.name AS section_name";
+            {{sections}}.name AS section_name,
+            IF(COUNT(DISTINCT llm_answers.id) > 0, TRUE, FALSE) AS has_llm_answer";
 
         // Add user_is_author part if userId is not null
         if ($userId !== null) {
@@ -88,6 +89,12 @@ class QuestionModel extends DatabaseModel
                 GROUP BY id_parent_question
             )
         ) la ON {{questions}}.id = la.id_parent_question
+        LEFT JOIN (
+            SELECT DISTINCT a.id, a.id_parent_question
+            FROM {{answers}} a
+            INNER JOIN {{users}} u ON a.id_user = u.sciper
+            WHERE u.role = 'llm'
+        ) llm_answers ON {{questions}}.id = llm_answers.id_parent_question
         WHERE visible = true";
 
         if ($pageId !== null) {

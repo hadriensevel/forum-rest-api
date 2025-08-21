@@ -23,6 +23,7 @@ class DatabaseModel
         '{{feature_flags}}' => DB_PREFIX . 'feature_flags',
         '{{sections}}' => DB_PREFIX . 'sections',
         '{{bookmarks}}' => DB_PREFIX . 'bookmarks',
+        '{{sessions}}' => DB_PREFIX . 'sessions',
     ];
 
     protected ?mysqli $connection = null;

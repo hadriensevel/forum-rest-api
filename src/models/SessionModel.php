@@ -96,4 +96,17 @@ class SessionModel extends DatabaseModel
         $params = array($sessionId);
         $this->createAndRunPreparedStatement($query, $params);
     }
+
+    /**
+     * Clean up expired sessions from the database.
+     *
+     * @return int Number of sessions deleted
+     * @throws Exception
+     */
+    public function cleanupExpiredSessions(): int
+    {
+        $query = "DELETE FROM {{sessions}} WHERE expires_at <= NOW()";
+        $result = $this->createAndRunPreparedStatement($query, array());
+        return $this->connection->affected_rows;
+    }
 }

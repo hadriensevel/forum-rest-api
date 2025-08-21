@@ -167,6 +167,12 @@ function validateToken(): void
             sendErrorResponse(403, 'Session expired');
         }
         
+        // Periodically cleanup expired sessions (1% chance)
+        if (rand(1, 100) === 1) {
+            $sessionController = new SessionController();
+            $sessionController->cleanupExpiredSessions();
+        }
+        
         http_response_code(200);
         
     } catch (Exception $e) {

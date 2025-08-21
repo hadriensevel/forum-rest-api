@@ -65,4 +65,10 @@ class SessionController extends BaseController
         $sessionModel = new SessionModel();
         $sessionModel->updateLastActivity($sessionId);
     }
+
+    public function cleanupExpiredSessions(): void
+    {
+        $sessionModel = new SessionModel();
+        $sessionModel->cleanupExpiredSessions();
+    }
 }

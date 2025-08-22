@@ -265,7 +265,7 @@ get('/admin/send-to-llm/$questionId', function ($questionId) {
         }
     } else {
         // If there's no token, redirect to the login page
-        header('Location: /auth/login?redirect=/admin/send-question-to-llm/' . $questionId);
+        header('Location: ' . BASE_URL . '/auth/login?redirect=' . BASE_URL . '/admin/send-question-to-llm/' . $questionId);
     }
     (new QuestionController())->sendQuestionToLLM($questionId);
     echo 'La question ' . $questionId . ' a été envoyée au LLM.';
@@ -280,12 +280,12 @@ get('/admin/dashboard', function () {
             $user = getUserFromToken(enforceToken: false);
             if (!$user) {
                 // No token found, redirect to login
-                header('Location: /auth/login?redirect=/admin/dashboard');
+                header('Location: ' . BASE_URL . '/auth/login?redirect=' . BASE_URL . '/admin/dashboard');
                 exit();
             }
         } catch (Exception $e) {
             // Invalid token, redirect to login
-            header('Location: /auth/login?redirect=/admin/dashboard');
+            header('Location: ' . BASE_URL . '/auth/login?redirect=' . BASE_URL . '/admin/dashboard');
             exit();
         }
     } else {
@@ -294,7 +294,7 @@ get('/admin/dashboard', function () {
             $user = getUserDetails($token);
         } catch (Exception $e) {
             // Invalid token, redirect to login
-            header('Location: /auth/login?redirect=/admin/dashboard');
+            header('Location: ' . BASE_URL . '/auth/login?redirect=' . BASE_URL . '/admin/dashboard');
             exit();
         }
     }

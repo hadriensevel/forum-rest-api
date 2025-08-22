@@ -136,11 +136,11 @@ class UserModel extends DatabaseModel
         }
         
         // Transfer ownership of questions
-        $transferQuestionsQuery = "UPDATE {{questions}} SET sciper = ? WHERE sciper = ?";
+        $transferQuestionsQuery = "UPDATE {{questions}} SET id_user = ? WHERE id_user = ?";
         $this->createAndRunPreparedStatement($transferQuestionsQuery, [$transferSciper, $sciper]);
         
         // Transfer ownership of answers
-        $transferAnswersQuery = "UPDATE {{answers}} SET sciper = ? WHERE sciper = ?";
+        $transferAnswersQuery = "UPDATE {{answers}} SET id_user = ? WHERE id_user = ?";
         $this->createAndRunPreparedStatement($transferAnswersQuery, [$transferSciper, $sciper]);
         
         // Remove the assistant from database

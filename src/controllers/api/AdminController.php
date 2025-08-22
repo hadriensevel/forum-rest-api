@@ -359,7 +359,7 @@ class AdminController extends BaseController
                     background-color: #d1d5db !important;
                 }
                 .toggle-switch.disabled input:checked + .slider {
-                    background-color: #9ca3af !important;
+                    background-color: #d1d5db !important;
                 }
                 @media (max-width: 768px) {
                     .add-assistant-form .form-row {

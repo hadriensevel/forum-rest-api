@@ -491,7 +491,7 @@ class AdminController extends BaseController
                         headers['Authorization'] = 'Bearer ' + jwtToken;
                     }
                     
-                    fetch('/admin/toggle-feature-flag', {
+                    fetch('<?= BASE_URL ?>/admin/toggle-feature-flag', {
                         method: 'POST',
                         headers: headers,
                         body: JSON.stringify({
@@ -528,7 +528,7 @@ class AdminController extends BaseController
                         headers['Authorization'] = 'Bearer ' + jwtToken;
                     }
                     
-                    fetch('/admin/toggle-endorsed-assistant', {
+                    fetch('<?= BASE_URL ?>/admin/toggle-endorsed-assistant', {
                         method: 'POST',
                         headers: headers,
                         body: JSON.stringify({
@@ -596,7 +596,7 @@ class AdminController extends BaseController
                         headers['Authorization'] = 'Bearer ' + jwtToken;
                     }
                     
-                    fetch('/admin/add-assistant', {
+                    fetch('<?= BASE_URL ?>/admin/add-assistant', {
                         method: 'POST',
                         headers: headers,
                         body: JSON.stringify({
@@ -642,7 +642,7 @@ class AdminController extends BaseController
                         headers['Authorization'] = 'Bearer ' + jwtToken;
                     }
                     
-                    fetch('/admin/remove-assistant', {
+                    fetch('<?= BASE_URL ?>/admin/remove-assistant', {
                         method: 'POST',
                         headers: headers,
                         body: JSON.stringify({

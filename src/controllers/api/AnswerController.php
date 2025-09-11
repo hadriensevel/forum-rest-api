@@ -77,6 +77,9 @@ class AnswerController extends BaseController
         $questionModel = new QuestionModel();
         $questionModel->updateQuestionLastActivity($questionId);
 
+        // Respond success immediately and continue best-effort notifications
+        $this->sendOutput('HTTP/1.1 200 OK', exit: false);
+
         // Send an email notification to the author of the question
         try {
             $questionAuthorId = $questionModel->getQuestionAuthor($questionId)->fetch_assoc()['id_user'];
@@ -101,11 +104,10 @@ class AnswerController extends BaseController
                 );
             }
         } catch (Exception $e) {
-            $mailer = new Mailer();
-            $mailer->sendErrorEmail('ADD_ANSWER_NOTIFICATION', $e->getMessage());
+            // Do not crash the request if notifications fail
+            error_log('ADD_ANSWER_NOTIFICATION: ' . $e->getMessage());
+            // Best-effort: avoid attempting to send another email from within error handling
         }
-
-        $this->sendOutput('HTTP/1.1 200 OK');
     }
 
     /**

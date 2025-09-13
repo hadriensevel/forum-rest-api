@@ -81,7 +81,7 @@ class AnswerController extends BaseController
         $this->sendOutput('HTTP/1.1 200 OK', exit: false);
 
         // Send an email notification to the author of the question
-        try {
+        /*try {
             $questionAuthorId = $questionModel->getQuestionAuthor($questionId)->fetch_assoc()['id_user'];
 
             $userModel = new UserModel();
@@ -107,7 +107,7 @@ class AnswerController extends BaseController
             // Do not crash the request if notifications fail
             error_log('ADD_ANSWER_NOTIFICATION: ' . $e->getMessage());
             // Best-effort: avoid attempting to send another email from within error handling
-        }
+        }*/
     }
 
     /**
